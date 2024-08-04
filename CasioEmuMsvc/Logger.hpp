@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Config.hpp"
 
 #include <string>
@@ -9,6 +9,8 @@ namespace casioemu
 	{
 		// Note that the printed string should end with a new line character.
 		void Info(const char *format, ...);
+
+		void Report(const char*what);
 	}
 }
 

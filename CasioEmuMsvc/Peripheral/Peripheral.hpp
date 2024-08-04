@@ -1,36 +1,40 @@
-#pragma once
+﻿#pragma once
 #include "../Config.hpp"
 
 #include <SDL.h>
+#include <any>
 
-namespace casioemu
-{
+namespace casioemu {
 	class Emulator;
 
-	class Peripheral
-	{
-	protected:
-		Emulator &emulator;
+	enum ClockType {
+		CLOCK_UNDEFINED = 0,
+		CLOCK_LSCLK,
+		CLOCK_HSCLK,
+		CLOCK_SYSCLK,
+		CLOCK_EMUCLK,
+		CLOCK_STOPPED
+	};
 
-		/**
-		 * This should be true if the state of this peripheral changed
-		 * so that it requires a call to Frame().
-		 * It should not directly call Frame() because otherwise it may
-		 * call it more than required (once per timer_interval)
-		 */
-		bool require_frame;
+	class Peripheral {
+	protected:
+		Emulator& emulator;
+
+		// Set this value for peripherals controlled by BLKCON
+		bool enabled = false;
 
 	public:
-		Peripheral(Emulator &emulator);
-		virtual void Initialise();
-		virtual void Uninitialise();
-		virtual void Tick();
-		virtual void TickAfterInterrupts();
-		virtual void Frame();
-		virtual void UIEvent(SDL_Event &event);
-		virtual void Reset();
-		virtual bool GetRequireFrame();
-		virtual ~Peripheral();
+		int clock_type = CLOCK_SYSCLK;
+		int block_bit = -1;
+		Peripheral(Emulator& emulator) : emulator(emulator) {}
+		virtual void Initialise() {}
+		virtual void Uninitialise() {}
+		virtual void Tick() {}
+		virtual void TickAfterInterrupts() {}
+		virtual void Frame() {}
+		virtual void UIEvent(SDL_Event& event) {}
+		virtual void Reset() {}
+		virtual void ResetLSCLK() {}
+		virtual ~Peripheral() {}
 	};
-}
-
+} // namespace casioemu

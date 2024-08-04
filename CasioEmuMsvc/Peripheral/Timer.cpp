@@ -1,101 +1,155 @@
-#include "Timer.hpp"
+﻿#include "Timer.hpp"
 
-#include "../Logger.hpp"
+#include "../Chipset/Chipset.hpp"
 #include "../Chipset/MMU.hpp"
 #include "../Emulator.hpp"
-#include "../Chipset/Chipset.hpp"
+#include "../Logger.hpp"
 
-namespace casioemu
-{
-	void Timer::Initialise()
-	{
-		real_hardware = emulator.GetModelInfo("real_hardware");
+#include <cmath>
+
+namespace casioemu {
+	class Timer : public Peripheral {
+		MMURegion region_counter, region_interval, region_F024, region_control;
+		uint16_t data_counter, data_interval;
+		uint8_t data_F024, data_control;
+
+		size_t TM0INT = 4;
+
+		uint64_t ext_to_int_counter, ext_to_int_next, ext_to_int_int_done;
+
+		size_t TimerFreqDiv;
+
+		unsigned int cycles_per_second;
+		static const uint64_t ext_to_int_frequency = 16384;
+
+	public:
+		using Peripheral::Peripheral;
+
+		void Initialise();
+		void Reset();
+		void Tick();
+		void Uninitialise();
+	};
+	void Timer::Initialise() {
+		if (enabled)
+			return;
+
+		enabled = true;
+
 		cycles_per_second = emulator.GetCyclesPerSecond();
-		EmuStopped = false;
-		emulator.chipset.EmuTimerSkipped = false;
-		
-		region_interval.Setup(0xF020, 2, "Timer/Interval", &data_interval, MMURegion::DefaultRead<uint16_t>, [](MMURegion *region, size_t offset, uint8_t data) {
-			uint16_t *value = (uint16_t *)(region->userdata);
-			*value &= ~(((uint16_t)0xFF) << ((offset - region->base) * 8));
-			*value |= ((uint16_t)data) << ((offset - region->base) * 8);
-			if (!*value)
-				*value = 1;
-		}, emulator);
 
-		region_counter.Setup(0xF022, 2, "Timer/Counter", &data_counter, MMURegion::DefaultRead<uint16_t>, [](MMURegion *region, size_t, uint8_t) {
-			*((uint16_t *)region->userdata) = 0;
-		}, emulator);
+		TimerFreqDiv = 1;
+		if (emulator.modeldef.real_hardware) {
+			clock_type = CLOCK_LSCLK;
+		}
+		else {
+			clock_type = CLOCK_EMUCLK;
+		}
 
-		region_control.Setup(0xF025, 1, "Timer/Control", this, [](MMURegion *region, size_t) {
-			Timer *timer = (Timer *)region->userdata;
-			return (uint8_t)(timer->data_control & 0x01);
-		}, [](MMURegion *region, size_t, uint8_t data) {
-			Timer *timer = (Timer *)region->userdata;
-			timer->data_control = data & 0x01;
-			timer->raise_required = false;
-		}, emulator);
+		block_bit = 3;
 
-		region_F024.Setup(0xF024, 1, "Timer/Unknown/F024*1", &data_F024, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
-	}
-
-	void Timer::Reset()
-	{
 		ext_to_int_counter = 0;
-		ext_to_int_next = 0;
-		ext_to_int_int_done = 0;
-		cycles_per_second = emulator.GetCyclesPerSecond();
-		DivideTicks();
-
-		raise_required = false;
-		EmuStopped = false;
-		emulator.chipset.EmuTimerSkipped = false;
+		data_interval = 0;
+		data_counter = 0;
 		data_control = 0;
+		data_F024 = 0;
+
+		region_interval.Setup(
+			0xF020, 2, "Timer/TM0D", &data_interval, MMURegion::DefaultRead<uint16_t>, [](MMURegion* region, size_t offset, uint8_t data) {
+				uint16_t* value = (uint16_t*)(region->userdata);
+				*value &= ~(((uint16_t)0xFF) << ((offset - region->base) * 8));
+				*value |= ((uint16_t)data) << ((offset - region->base) * 8);
+				// if (!*value)
+				// 	*value = 1;
+			},
+			emulator);
+
+		region_counter.Setup(
+			0xF022, 2, "Timer/TM0C", &data_counter, MMURegion::DefaultRead<uint16_t>, [](MMURegion* region, size_t, uint8_t) {
+				*((uint16_t*)region->userdata) = 0;
+			},
+			emulator);
+
+		region_F024.Setup(
+			0xF024, 1, "Timer/TM0CON0", this,
+			[](MMURegion* region, size_t) {
+				Timer* timer = (Timer*)region->userdata;
+				return (uint8_t)(timer->data_F024 & 0x0F);
+			},
+			[](MMURegion* region, size_t, uint8_t data) {
+				Timer* timer = (Timer*)region->userdata;
+				timer->data_F024 = data & 0x0F;
+				timer->TimerFreqDiv = std::pow(2, data & 0x07);
+				if (timer->emulator.modeldef.real_hardware) {
+					if (data & 0x08)
+						timer->clock_type = CLOCK_HSCLK;
+					else
+						timer->clock_type = CLOCK_LSCLK;
+				}
+			},
+			emulator);
+
+		region_control.Setup(
+			0xF025, 1, "Timer/TM0CON1", this, [](MMURegion* region, size_t) {
+			Timer *timer = (Timer *)region->userdata;
+			return (uint8_t)(timer->data_control & 0x01); }, [](MMURegion* region, size_t, uint8_t data) {
+			Timer *timer = (Timer *)region->userdata;
+			timer->data_control = data & 0x01; }, emulator);
 	}
 
-	void Timer::Tick()
-	{
-		if (ext_to_int_counter == ext_to_int_next)
-			DivideTicks();
-		++ext_to_int_counter;
-
-		if (raise_required)
-			emulator.chipset.MaskableInterrupts[IntIndex].TryRaise();
-	}
-
-	void Timer::TickAfterInterrupts()
-	{
-		raise_required = false;
-
-		if(EmuStopped && emulator.chipset.GetRunningState()) {
-			EmuStopped = false;
-			emulator.chipset.EmuTimerSkipped = false;
+	void Timer::Reset() {
+		if (!enabled) {
+			Initialise();
+			return;
 		}
+
+		ext_to_int_counter = 0;
+
+		data_interval = 0;
+		data_counter = 0;
+		data_control = 0;
+		data_F024 = 0;
 	}
 
-	void Timer::DivideTicks()
-	{
-		if(emulator.hardware_id == HW_CLASSWIZ_II && !real_hardware) {
-			if(!emulator.chipset.GetRunningState()) {
-				EmuStopped = true;
+	void Timer::Tick() {
+		if (clock_type == CLOCK_EMUCLK) {
+			if (!data_interval) {
+				ext_to_int_counter = 0;
+			}
+			else if (++ext_to_int_counter >= (data_interval * TimerFreqDiv) / 32678.0 / 0.025 * 2) {
+				ext_to_int_counter = 0;
+				emulator.chipset.MaskableInterrupts[TM0INT].TryRaise();
+			}
+			return;
+		}
+		if (data_control) {
+			if (++ext_to_int_counter >= TimerFreqDiv) {
+				ext_to_int_counter = 0;
+				if (!data_interval) {
+					data_counter = 0;
+				}
+				else if (++data_counter >= data_interval) {
+					data_counter = 0;
+					emulator.chipset.MaskableInterrupts[TM0INT].TryRaise();
+				}
 			}
 		}
-		++ext_to_int_int_done;
-		if (ext_to_int_int_done == ext_to_int_frequency)
-		{
-			ext_to_int_int_done = 0;
-			ext_to_int_counter = 0;
-			cycles_per_second = emulator.GetCyclesPerSecond();
-		}
-		ext_to_int_next = cycles_per_second * (ext_to_int_int_done + 1) / ext_to_int_frequency;
-
-		if (data_control & 0x01)
-		{
-			if (data_counter >= (emulator.chipset.EmuTimerSkipped ? 1 : data_interval))
-			{
-				data_counter = 0;
-				raise_required = true;
-			}
-			++data_counter;
-		}
 	}
-}
+
+	void Timer::Uninitialise() {
+		if (!enabled)
+			return;
+
+		enabled = false;
+
+		clock_type = CLOCK_STOPPED;
+
+		region_interval.Kill();
+		region_counter.Kill();
+		region_F024.Kill();
+		region_control.Kill();
+	}
+	Peripheral* CreateTimer(Emulator& emu) {
+		return new Timer(emu);
+	}
+} // namespace casioemu

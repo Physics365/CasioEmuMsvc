@@ -1,19 +1,15 @@
-#pragma once
+﻿#pragma once
 #include "Config.hpp"
-
+#include "ModelInfo.h"
 #include <string>
 #include <map>
 #include <SDL.h>
 #include <SDL_image.h>
-#include <lua.hpp>
+
 #include <mutex>
 #include <thread>
 #include <condition_variable>
 #include <queue>
-
-#include "Data/HardwareId.hpp"
-#include "Data/ModelInfo.hpp"
-#include "Data/SpriteInfo.hpp"
 
 namespace casioemu
 {
@@ -42,6 +38,7 @@ namespace casioemu
 	{
 		
 		SDL_Renderer *renderer;
+		SDL_Surface* interface_surface;
 		SDL_Texture *interface_texture;
 		unsigned int cycles_per_second;
 		unsigned int timer_interval;
@@ -53,7 +50,7 @@ namespace casioemu
 		std::thread *tick_thread;
 
 		SpriteInfo interface_background;
-		int width, height;
+		SDL_Rect emu_rect{};
 
 		/**
 		 * A bunch of internally used methods for encapsulation purposes.
@@ -65,17 +62,17 @@ namespace casioemu
 		void RunStartupScript();
 
 	public:
+		ModelInfo modeldef{};
 		SDL_Window *window;
 		Emulator(std::map<std::string, std::string> &argv_map, bool paused = false);
 		~Emulator();
 
 		FairRecursiveMutex access_mx;
-		lua_State *lua_state;
-		int lua_model_ref, lua_pre_tick_ref, lua_post_tick_ref;
 		HardwareId hardware_id;
 		std::map<std::string, std::string> &argv_map;
 
-	private:
+	// private:
+	public:
 		/**
 		 * The cycle manager structure. This structure is reset every time the
 		 * emulator starts emulating CPU cycles and in every timer callback
@@ -95,14 +92,14 @@ namespace casioemu
 			Uint64 ticks_now, cycles_emulated, cycles_per_second;
 			unsigned int timer_interval;
 		} cycles;
-
-	public:
 		/**
 		 * A reference to the emulator chipset. This object holds all CPU, MMU, memory and
 		 * peripheral state. The emulator interfaces with the chipset by issuing interrupts
 		 * and rendering the screen buffer. It may also read internal state for testing purposes.
 		 */
 		Chipset &chipset;
+
+		float BatteryVoltage, SolarPanelVoltage;
 
 		bool Running();
 		void HandleMemoryError();
@@ -122,10 +119,8 @@ namespace casioemu
 		void UIEvent(SDL_Event &event);
 		SDL_Renderer *GetRenderer();
 		SDL_Texture *GetInterfaceTexture();
-		ModelInfo GetModelInfo(std::string key);
 		std::string GetModelFilePath(std::string relative_path);
 
-		friend class ModelInfo;
 		friend class CPU;
 		friend class MMU;
 	};

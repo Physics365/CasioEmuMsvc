@@ -1,78 +1,94 @@
-#include "BCDCalc.hpp"
+﻿#include "BCDCalc.hpp"
 
-#include "../Chipset/MMURegion.hpp"
-#include "../Data/HardwareId.hpp"
-#include "../Logger.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
 #include "../Chipset/Chipset.hpp"
+#include "../Chipset/MMU.hpp"
+#include "../Chipset/MMURegion.hpp"
+#include "../Emulator.hpp"
+#include "../Logger.hpp"
+#include "../ModelInfo.h"
 
-namespace casioemu
-{
+namespace casioemu {
+	class BCDCalc : public Peripheral {
+		MMURegion region_bcdcontrol, region_F402, region_F404, region_F405, region_F410, region_F414, region_F415, region_param1, region_param2, region_temp1, region_temp2;
+
+		uint8_t data_F400, data_F402, data_F404, data_F405, data_F410, data_F414, data_F415;
+
+		uint8_t data_param1[12];
+		uint8_t data_param2[12];
+		uint8_t data_temp1[12];
+		uint8_t data_temp2[12];
+
+		bool F400_write;
+		bool F402_write;
+		bool F404_write;
+		bool F405_write;
+
+		uint8_t data_operator, data_type_1, data_type_2, param1, param2, param3, param4, data_F404_copy,
+			data_mode, data_repeat_flag, data_a, data_b, data_c, data_d, data_F402_copy, data_F405_copy;
+
+	public:
+		using Peripheral::Peripheral;
+
+		void Initialise();
+		void Reset();
+		void Tick();
+
+		void GenerateParams();
+		void F405control();
+		void ShiftLeft(int param);
+		void ShiftRight(int param);
+		void DataOperate();
+	};
 	void BCDCalc::Initialise() {
+		if (emulator.hardware_id != HW_CLASSWIZ_II)
+			return;
 		F400_write = false;
 		F402_write = false;
 		F404_write = false;
 		F405_write = false;
 
-		region_bcdcontrol.Setup(0xF400, 1, "BCDCalc/control", this, [](MMURegion* region, size_t offset) {
+		region_bcdcontrol.Setup(
+			0xF400, 1, "BCDCalc/control", this, [](MMURegion* region, size_t offset) {
 			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-			return bcdcalc->data_F400;
-		}, [](MMURegion* region, size_t, uint8_t data) {
+			return bcdcalc->data_F400; }, [](MMURegion* region, size_t, uint8_t data) {
 			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
 			bcdcalc->data_F400 = data;
-			bcdcalc->F400_write = true;
-		}, emulator);
+			bcdcalc->F400_write = true; }, emulator);
 
-		region_param1.Setup(0xF480, 12, "BCDCalc/param1", data_param1, [](MMURegion* region, size_t offset) {
-			return ((uint8_t*)region->userdata)[offset - region->base];
-		}, [](MMURegion* region, size_t offset, uint8_t data) {
-			((uint8_t*)region->userdata)[offset - region->base] = data;
-		}, emulator);
-		region_param2.Setup(0xF4A0, 12, "BCDCalc/param2", data_param2, [](MMURegion* region, size_t offset) {
-			return ((uint8_t*)region->userdata)[offset - region->base];
-		}, [](MMURegion* region, size_t offset, uint8_t data) {
-			((uint8_t*)region->userdata)[offset - region->base] = data;
-		}, emulator);
-		region_temp1.Setup(0xF4C0, 12, "BCDCalc/temp1", data_temp1, [](MMURegion* region, size_t offset) {
-			return ((uint8_t*)region->userdata)[offset - region->base];
-		}, [](MMURegion* region, size_t offset, uint8_t data) {
-			((uint8_t*)region->userdata)[offset - region->base] = data;
-		}, emulator);
-		region_temp2.Setup(0xF4E0, 12, "BCDCalc/temp2", data_temp2, [](MMURegion* region, size_t offset) {
-			return ((uint8_t*)region->userdata)[offset - region->base];
-		}, [](MMURegion* region, size_t offset, uint8_t data) {
-			((uint8_t*)region->userdata)[offset - region->base] = data;
-		}, emulator);
+		region_param1.Setup(
+			0xF480, 12, "BCDCalc/param1", data_param1, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+		region_param2.Setup(
+			0xF4A0, 12, "BCDCalc/param2", data_param2, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+		region_temp1.Setup(
+			0xF4C0, 12, "BCDCalc/temp1", data_temp1, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+		region_temp2.Setup(
+			0xF4E0, 12, "BCDCalc/temp2", data_temp2, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 
 		region_F410.Setup(0xF410, 1, "BCDCalc/F410", &data_F410, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
 		region_F414.Setup(0xF414, 1, "BCDCalc/F414", &data_F414, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
 		region_F415.Setup(0xF415, 1, "BCDCalc/F415", &data_F415, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
 
-		region_F402.Setup(0xF402, 1, "BCDCalc/F402", this, [](MMURegion* region, size_t offset) {
+		region_F402.Setup(
+			0xF402, 1, "BCDCalc/F402", this, [](MMURegion* region, size_t offset) {
 			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-			return bcdcalc->data_F402;
-		}, [](MMURegion* region, size_t, uint8_t data) {
+			return bcdcalc->data_F402; }, [](MMURegion* region, size_t, uint8_t data) {
 			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
 			bcdcalc->data_F402 = data;
-			bcdcalc->F402_write = true;
-		}, emulator);
-		 region_F404.Setup(0xF404, 1, "BCDCalc/F404", this, [](MMURegion* region, size_t offset) {
+			bcdcalc->F402_write = true; }, emulator);
+		region_F404.Setup(
+			0xF404, 1, "BCDCalc/F404", this, [](MMURegion* region, size_t offset) {
 		 	BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-		 	return bcdcalc->data_F404;
-		 }, [](MMURegion* region, size_t, uint8_t data) {
+		 	return bcdcalc->data_F404; }, [](MMURegion* region, size_t, uint8_t data) {
 		 	BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
 		 	bcdcalc->data_F404 = data;
-		 	bcdcalc->F404_write = true;
-		 }, emulator);
-		 region_F405.Setup(0xF405, 1, "BCDCalc/F405", this, [](MMURegion* region, size_t offset) {
+		 	bcdcalc->F404_write = true; }, emulator);
+		region_F405.Setup(
+			0xF405, 1, "BCDCalc/F405", this, [](MMURegion* region, size_t offset) {
 		 	BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-		 	return bcdcalc->data_F405;
-		 }, [](MMURegion* region, size_t, uint8_t data) {
+		 	return bcdcalc->data_F405; }, [](MMURegion* region, size_t, uint8_t data) {
 		 	BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
 		 	bcdcalc->data_F405 = data;
-		 	bcdcalc->F405_write = true;
-		 }, emulator);
+		 	bcdcalc->F405_write = true; }, emulator);
 	}
 
 	void BCDCalc::GenerateParams() {
@@ -675,7 +691,7 @@ namespace casioemu
 			for (uint8_t offset = 0; offset < 0x0A; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, 0x09 - offset);
 				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
-				emulator.chipset.mmu.WriteData((size_t)(addr+2), val);
+				emulator.chipset.mmu.WriteData((size_t)(addr + 2), val);
 			}
 			for (int i = 0; i < 2; i++) {
 				uint16_t addr = CalcAddr((data_type_1 + 3) & 0x03, i + 0x0A);
@@ -862,7 +878,7 @@ namespace casioemu
 				else {
 					flag = 0;
 				}
-				uint32_t res = Calculate(tmp,(uint32_t)val1, (uint32_t)val2, flag);
+				uint32_t res = Calculate(tmp, (uint32_t)val1, (uint32_t)val2, flag);
 				tmp = (res >> 16) & 1;
 				if ((res & 0xFFFF) == 0 && data_F410_tmp != 0) {
 					data_F410_tmp = 1;
@@ -1089,4 +1105,7 @@ namespace casioemu
 		data_F404 = 0;
 		data_F405 = 0;
 	}
-}
+	Peripheral* CreateBcdCalc(Emulator& emu) {
+		return new BCDCalc(emu);
+	}
+} // namespace casioemu

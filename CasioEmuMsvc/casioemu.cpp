@@ -1,4 +1,4 @@
-#include "Config.hpp"
+﻿#include "Config.hpp"
 #include "Gui/imgui/imgui_impl_sdl2.h"
 #include "Gui/ui.hpp"
 
@@ -15,7 +15,7 @@
 #include <string>
 #include <thread>
 
-#include "Data/EventCode.hpp"
+// #include "EventCode.hpp"
 #include "Emulator.hpp"
 #include "Logger.hpp"
 #include "SDL_events.h"
@@ -27,10 +27,37 @@
 #include <cstdlib>
 #include <cstring>
 
+#if _WIN32
+#include <Windows.h>
+#include <filesystem>
+std::string ShowOpenFileDialog() {
+	OPENFILENAMEA ofn{};
+	char szFile[260]{};
+
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = "Model Configuration\0Config.bin\0All Files\0*.*\0";
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	GetOpenFileNameA(&ofn);
+	return std::filesystem::path(szFile).parent_path().string();
+}
+#pragma comment(lib, "winmm.lib")
+#endif
+
+#include "StartupUi/StartupUi.h"
 
 using namespace casioemu;
 
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+	timeBeginPeriod(1);
+#endif //  _WIN32
+
 	std::map<std::string, std::string> argv_map;
 	for (int ix = 1; ix != argc; ++ix) {
 		std::string key, value;
@@ -49,11 +76,7 @@ int main(int argc, char* argv[]) {
 		else
 			logger::Info("[argv] #%i: key '%s' already set\n", ix, key.c_str());
 	}
-
-	if (argv_map.find("model") == argv_map.end()) {
-		printf("No model path supplied\n");
-		exit(2);
-	}
+	bool headless = argv_map.find("headless") != argv_map.end();
 
 	int sdlFlags = SDL_INIT_VIDEO | SDL_INIT_TIMER;
 	if (SDL_Init(sdlFlags) != 0)
@@ -63,134 +86,71 @@ int main(int argc, char* argv[]) {
 	if (IMG_Init(imgFlags) != imgFlags)
 		PANIC("IMG_Init failed: %s\n", IMG_GetError());
 
-	// while(1)
-	// 	;
-	{
-		Emulator emulator(argv_map);
-		m_emu = &emulator;
-
-		// Note: argv_map must be destructed after emulator.
-
-		// Used to signal to the console input thread when to stop.
-		static std::atomic<bool> running(true);
-
-		std::thread console_input_thread([&] {
-			auto input = std::string();
-			while (1) {
-				getline(std::cin,input);
-				if (input.empty())
-					continue;
-
-				std::lock_guard<decltype(emulator.access_mx)> access_lock(emulator.access_mx);
-				if (!emulator.Running())
-					break;
-				emulator.ExecuteCommand(input);
-
-				if (!emulator.Running()) {
-					SDL_Event event;
-					SDL_zero(event);
-					event.type = SDL_USEREVENT;
-					event.user.code = CE_EMU_STOPPED;
-					SDL_PushEvent(&event);
-					return;
-				}
-			}
-			});
-
-		bool guiCreated = false;
-		std::thread t1([&]() {
-			test_gui(&guiCreated);
-			while (1) {
-				SDL_Event event;
-				gui_loop();
-				if (!SDL_PollEvent(&event))
-					continue;
-
-				switch (event.type) {
-				case SDL_WINDOWEVENT:
-					switch (event.window.event) {
-					case SDL_WINDOWEVENT_CLOSE:
-						emulator.Shutdown();
-						break;
-					case SDL_WINDOWEVENT_RESIZED:
-						ImGui_ImplSDL2_ProcessEvent(&event);
-						break;
-					}
-					break;
-				default:
-					break;
-				}
-			}
-			});
-		t1.detach();
-
-		while (emulator.Running()) {
-
-			// std::cout<<SDL_GetMouseFocus()<<","<<emulator.window<<std::endl;
-			SDL_Event event;
-			if (!SDL_PollEvent(&event))
-				continue;
-
-			switch (event.type) {
-			case SDL_USEREVENT:
-				switch (event.user.code) {
-				case CE_FRAME_REQUEST:
-					emulator.Frame();
-					break;
-				case CE_EMU_STOPPED:
-					if (emulator.Running())
-						PANIC("CE_EMU_STOPPED event received while emulator is still running\n");
-					break;
-				}
-				break;
-
-			case SDL_WINDOWEVENT:
-
-				switch (event.window.event) {
-				case SDL_WINDOWEVENT_CLOSE:
-					emulator.Shutdown();
-					break;
-				case SDL_WINDOWEVENT_RESIZED:
-					// if (!argv_map.count("resizable"))
-					// {
-					// 	// Normally, in this case, the window manager should not
-					// 	// send resized event, but some still does (such as xmonad)
-					// 	break;
-					// }
-					if (event.window.windowID == SDL_GetWindowID(emulator.window)) {
-						emulator.WindowResize(event.window.data1, event.window.data2);
-					}
-					break;
-				case SDL_WINDOWEVENT_EXPOSED:
-					emulator.Repaint();
-					break;
-				}
-				break;
-
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
-			case SDL_KEYDOWN:
-			case SDL_KEYUP:
-			case SDL_TEXTINPUT:
-			case SDL_MOUSEMOTION:
-			case SDL_MOUSEWHEEL:
-				if ((SDL_GetKeyboardFocus() != emulator.window || SDL_GetMouseFocus() != emulator.window) && guiCreated) {
-					ImGui_ImplSDL2_ProcessEvent(&event);
-					break;
-				}
-				emulator.UIEvent(event);
-				break;
-			}
+	if (argv_map.find("model") == argv_map.end()) {
+		if (headless) {
+			PANIC("Please provide model path\n");
 		}
-
-		running = false;
-		console_input_thread.join();
+		auto s = sui_loop();
+		argv_map["model"] = s;
+		if (s.empty())
+			return -1;
 	}
 
-	std::cout << "\nGoodbye" << std::endl;
+	Emulator emulator(argv_map);
+	m_emu = &emulator;
 
-	IMG_Quit();
-	SDL_Quit();
+	static std::atomic<bool> running(true);
 
+	bool guiCreated = false;
+	auto frame_event = SDL_RegisterEvents(1);
+	std::thread t3([&]() {
+		SDL_Event se{};
+		se.type = frame_event;
+		se.user.windowID = SDL_GetWindowID(emulator.window);
+		while (1) {
+			SDL_PushEvent(&se);
+			SDL_Delay(25);
+		}
+	});
+	t3.detach();
+	test_gui(&guiCreated);
+	while (emulator.Running()) {
+		SDL_Event event{};
+		if (!SDL_PollEvent(&event))
+			continue;
+		if (event.type == frame_event) {
+			gui_loop();
+			emulator.Frame();
+			continue;
+		}
+		if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
+			ImGui_ImplSDL2_ProcessEvent(&event);
+			continue;
+		}
+		switch (event.type) {
+		case SDL_WINDOWEVENT:
+			switch (event.window.event) {
+			case SDL_WINDOWEVENT_CLOSE:
+				emulator.Shutdown();
+				std::exit(0);
+				break;
+			case SDL_WINDOWEVENT_RESIZED:
+				if (event.window.windowID == SDL_GetWindowID(emulator.window)) {
+					emulator.WindowResize(event.window.data1, event.window.data2);
+				}
+				break;
+			}
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
+		case SDL_KEYDOWN:
+		case SDL_KEYUP:
+		case SDL_TEXTINPUT:
+		case SDL_MOUSEMOTION:
+		case SDL_MOUSEWHEEL:
+			emulator.UIEvent(event);
+			break;
+		}
+	}
 	return 0;
 }

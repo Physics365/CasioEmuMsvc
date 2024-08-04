@@ -1,0 +1,52 @@
+﻿<Window x:Class="cw2tools.MainMenuEditor"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <StackPanel>
+        <TextBlock Text="Menu icon base:"/>
+        <TextBox x:Name="MenuBase1Input" Text="????"/>
+        <TextBlock Text="Menu text texture base:"/>
+        <TextBox x:Name="MenuBase2Input" Text="????"/>
+        <StackPanel Orientation="Horizontal">
+            <Button Content="Search by signature" HorizontalAlignment="Left" Click="Button_Click_11"/>
+        </StackPanel>
+        <TextBlock Text="Index:"/>
+        <TextBox x:Name="IndexInput" Text="0"/>
+        <TextBlock Text="Language:"/>
+        <TextBox x:Name="LanguageInput" Text="1"/>
+        <Button Content="Load preview" HorizontalAlignment="Left" Click="Button_Click_1"/>
+        <TextBlock Text="Preview:"/>
+        <Grid Width="256" HorizontalAlignment="Left">
+            <Image x:Name="PreviewImage" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+        </Grid>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Bitmap(bit 0) offset"/>
+            <TextBox Text="????" Width="100" x:Name="BitmapOffset0"/>
+            <Button Content="Modify" Click="Button_Click_4"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Bitmap(bit 1) offset"/>
+            <TextBox Text="????" Width="100" x:Name="BitmapOffset1"/>
+            <Button Content="Modify" Click="Button_Click_3"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Text texture offset"/>
+            <TextBox Text="????" Width="100" x:Name="BitmapOffset2"/>
+            <Button Content="Modify" Click="Button_Click_6"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Mode"/>
+            <TextBox Text="??" Width="100" x:Name="ModeInput"/>
+            <Button Content="Modify" Click="Button_Click_2"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Button Content="Export (64*28)" HorizontalAlignment="Left" Click="Button_Click_8"/>
+            <Button Content="Replace the icon(64*15)" HorizontalAlignment="Left" Click="Button_Click_7"/>
+            <Button Content="Replace the text(64*13)" HorizontalAlignment="Left" Click="Button_Click_9"/>
+            <Button Content="Replace the icon and text(64*28)" HorizontalAlignment="Left" Click="Button_Click_10"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

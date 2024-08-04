@@ -1,72 +1,54 @@
-#pragma once
-#include "../Config.hpp"
+﻿#pragma once
+#include "Config.hpp"
+#include "Logger.hpp"
 
-#include "../Logger.hpp"
-
-#include <cstdint>
-#include <string>
-#include <map>
-#include <vector>
-
-namespace casioemu
-{
+namespace casioemu {
 	class Emulator;
 
-	class CPU
-	{
-		Emulator &emulator;
+	class CPU {
+		Emulator& emulator;
 
 	private:
-		struct RegisterStub
-		{
+		struct RegisterStub {
 			size_t type_size;
 			std::string name;
 
 			uint16_t raw;
 		};
 
-		template<typename value_type>
-		struct Register : public RegisterStub
-		{
-			Register<value_type>()
-			{
+		template <typename value_type>
+		struct Register : public RegisterStub {
+			Register<value_type>() {
 				type_size = sizeof(value_type);
 				name = "?";
 			}
 
-			operator value_type()
-			{
+			operator value_type() {
 				return raw;
 			}
 
-			Register<value_type> &operator =(value_type value)
-			{
+			Register<value_type>& operator=(value_type value) {
 				raw = value;
 				return *this;
 			}
 
-			Register<value_type> &operator &=(value_type value)
-			{
+			Register<value_type>& operator&=(value_type value) {
 				return *this = raw & value;
 			}
 
-			Register<value_type> &operator |=(value_type value)
-			{
+			Register<value_type>& operator|=(value_type value) {
 				return *this = raw | value;
 			}
 
-			Register<value_type> &operator ^=(value_type value)
-			{
+			Register<value_type>& operator^=(value_type value) {
 				return *this = raw ^ value;
 			}
 
-			Register<value_type> &operator +=(value_type value)
-			{
+			Register<value_type>& operator+=(value_type value) {
 				return *this = raw + value;
 			}
 
-			Register<value_type> &operator -=(value_type value)
-			{
+			Register<value_type>& operator-=(value_type value) {
 				return *this = raw - value;
 			}
 		};
@@ -90,15 +72,14 @@ namespace casioemu
 		void SetupRegisterProxies();
 
 	public:
-		CPU(Emulator &emulator);
+		CPU(Emulator& emulator);
 		~CPU();
 		void SetupInternals();
 
 		/**
 		 * See 1.2.2.1 in the nX-U8 manual.
 		 */
-		enum StatusFlag
-		{
+		enum StatusFlag {
 			PSW_C = 0x80,
 			PSW_Z = 0x40,
 			PSW_S = 0x20,
@@ -111,11 +92,18 @@ namespace casioemu
 		/**
 		 * See 1.3.6 in the nX-U8 manual.
 		 */
-		enum MemoryModel
-		{
+		enum MemoryModel {
 			MM_SMALL,
 			MM_LARGE
 		} memory_model;
+
+		/**
+		 * Classwiz models use nX-U16 cpu.
+		 */
+		enum CPUModel {
+			CM_NX_U8,
+			CM_NX_U16
+		} cpu_model;
 
 		/**
 		 * See 1.2.1 in the nX-U8 manual.
@@ -128,10 +116,13 @@ namespace casioemu
 		reg8_t reg_dsr;
 
 		uint8_t impl_last_dsr;
-		
+
+		uint8_t dsr_mask;
+
 		bool real_hardware;
 
 		void SetMemoryModel(MemoryModel memory_model);
+		void SetCPUModel(CPUModel cpu_model);
 		void Next();
 		void Reset();
 		void Raise(size_t exception_level, size_t index);
@@ -141,19 +132,17 @@ namespace casioemu
 		std::string GetBacktrace() const;
 
 	private:
-		struct StackFrame
-		{
+		struct StackFrame {
 			bool lr_pushed;
-			uint16_t lr_push_address, new_csr, new_pc;
+			bool is_jump;
+			uint16_t lr_push_address;
+			uint32_t lr, new_pc;
 		};
-		std::vector<StackFrame> stack;
-
-		
+		ConcurrentObject<std::vector<StackFrame>> stack;
 
 		uint16_t Fetch();
 
-		enum OpcodeHint
-		{
+		enum OpcodeHint {
 			H_IE = 0x0001, // * Extend Immediate flag for arithmetic instructions.
 			H_ST = 0x0002, // * Store flag for load/store/coprocessor instructions.
 			H_DW = 0x0004, // * Store a new DSR value.
@@ -163,8 +152,7 @@ namespace casioemu
 			H_WB = 0x0040  // * Register Writeback flag for a lot of instructions to make life easier.
 		};
 
-		struct OpcodeSource
-		{
+		struct OpcodeSource {
 			void (CPU::*handler_function)();
 			/**
 			 * I know this should be an OpcodeHint, but the damn C++ initializer lists
@@ -173,8 +161,7 @@ namespace casioemu
 			 */
 			size_t hint;
 			uint16_t opcode;
-			struct OperandMask
-			{
+			struct OperandMask {
 				/**
 				 * `register_size` determines whether an operand is a register
 				 * or an immediate. If it's 0, the operand is an immediate. Otherwise
@@ -185,19 +172,18 @@ namespace casioemu
 			} operands[2];
 		};
 		static OpcodeSource opcode_sources[];
-		OpcodeSource **opcode_dispatch;
+		OpcodeSource** opcode_dispatch;
 
 		typedef RegisterStub CPU::*RegisterStubPointer;
 		typedef RegisterStub (CPU::*RegisterStubArrayPointer)[];
-		struct RegisterRecord
-		{
+		struct RegisterRecord {
 			std::string name;
 			size_t array_size, array_base;
 			RegisterStubPointer stub;
 			RegisterStubArrayPointer stub_array;
 		};
 		static RegisterRecord register_record_sources[];
-		std::map<std::string, RegisterStub *> register_proxies;
+		std::map<std::string, RegisterStub*> register_proxies;
 
 		// * Arithmetic Instructions
 		void OP_ADD();
@@ -276,5 +262,4 @@ namespace casioemu
 		void OP_NOP();
 		void OP_DSR();
 	};
-}
-
+} // namespace casioemu

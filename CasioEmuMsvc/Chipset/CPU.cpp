@@ -1,16 +1,17 @@
-#include "CPU.hpp"
+﻿#include "CPU.hpp"
 
 #include "../Emulator.hpp"
+#include "../Gui/CodeViewer.hpp"
+#include "../Gui/Hooks.h"
+#include "../Logger.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
-#include "../Logger.hpp"
-#include "../Gui/ui.hpp"
 
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 
-namespace casioemu
-{
+namespace casioemu {
+	// clang-format off
 	CPU::OpcodeSource CPU::opcode_sources[] = {
 		//           function,                     hints, main mask, operand {size, mask, shift} x2
 		// * Arithmetic Instructions
@@ -190,6 +191,7 @@ namespace casioemu
 		{&CPU::OP_DEC_EA     ,                         0, 0xFE3F, {{0,      0,  0}, {0,      0,  0}}},
 		{&CPU::OP_RT         ,                         0, 0xFE1F, {{0,      0,  0}, {0,      0,  0}}},
 		{&CPU::OP_RTI        ,                         0, 0xFE0F, {{0,      0,  0}, {0,      0,  0}}},
+		{&CPU::OP_RTI        ,                         0, 0xFE7F, {{0,      0,  0}, {0,      0,  0}}}, // TODO: verify this
 		{&CPU::OP_NOP        ,                         0, 0xFE8F, {{0,      0,  0}, {0,      0,  0}}},
 		{&CPU::OP_DSR        ,               H_DS       , 0xFE9F, {{0,      0,  0}, {0,      0,  0}}},
 		{&CPU::OP_DSR        ,               H_DS | H_DW, 0xE300, {{0, 0x00FF,  0}, {0,      0,  0}}},
@@ -217,48 +219,45 @@ namespace casioemu
 		{   "ea",  1, 0,        (RegisterStubPointer)&CPU::reg_ea, nullptr},
 		{  "dsr",  1, 0,       (RegisterStubPointer)&CPU::reg_dsr, nullptr}
 	};
-
-	void CPU::OP_NOP()
-	{
+	// clang-format on
+	void CPU::OP_NOP() {
 	}
 
-	void CPU::OP_DSR()
-	{
+	void CPU::OP_DSR() {
 		if (impl_hint & H_DW)
 			impl_last_dsr = impl_operands[0].value;
 
+		impl_last_dsr &= dsr_mask;
 		reg_dsr = impl_last_dsr;
 	}
 
-	CPU::CPU(Emulator &_emulator) : emulator(_emulator), reg_lr(reg_elr[0]), reg_lcsr(reg_ecsr[0]), reg_psw(reg_epsw[0])
-	{
-		opcode_dispatch = new OpcodeSource *[0x10000];
+	CPU::CPU(Emulator& _emulator) : emulator(_emulator), reg_lr(reg_elr[0]), reg_lcsr(reg_ecsr[0]), reg_psw(reg_epsw[0]) {
+		opcode_dispatch = new OpcodeSource*[0x10000];
 		for (size_t ix = 0; ix != 0x10000; ++ix)
 			opcode_dispatch[ix] = nullptr;
 	}
 
-	CPU::~CPU()
-	{
+	CPU::~CPU() {
 		delete[] opcode_dispatch;
 	}
 
-	void CPU::SetupInternals()
-	{
+	void CPU::SetupInternals() {
 		SetupOpcodeDispatch();
 		SetupRegisterProxies();
 
-		impl_csr_mask = emulator.GetModelInfo("csr_mask");
-		real_hardware = emulator.GetModelInfo("real_hardware");
+		impl_csr_mask = emulator.modeldef.csr_mask;
+		real_hardware = emulator.modeldef.real_hardware;
+
+		// Only tested on fx-991cnx
+		dsr_mask = emulator.hardware_id == HW_CLASSWIZ ? 0x1F : 0xFF;
 
 		fetch_addition = 2;
 	}
 
-	void CPU::SetupOpcodeDispatch()
-	{
-		uint16_t *permutation_buffer = new uint16_t[0x10000];
-		for (size_t ix = 0; ix != sizeof(opcode_sources) / sizeof(opcode_sources[0]); ++ix)
-		{
-			OpcodeSource &handler_stub = opcode_sources[ix];
+	void CPU::SetupOpcodeDispatch() {
+		uint16_t* permutation_buffer = new uint16_t[0x10000];
+		for (size_t ix = 0; ix != sizeof(opcode_sources) / sizeof(opcode_sources[0]); ++ix) {
+			OpcodeSource& handler_stub = opcode_sources[ix];
 
 			uint16_t varying_bits = 0;
 			for (size_t ox = 0; ox != sizeof(impl_operands) / sizeof(impl_operands[0]); ++ox)
@@ -266,18 +265,15 @@ namespace casioemu
 
 			size_t permutation_count = 1;
 			permutation_buffer[0] = handler_stub.opcode;
-			for (uint16_t checkbit = 0x8000; checkbit; checkbit >>= 1)
-			{
-				if (varying_bits & checkbit)
-				{
+			for (uint16_t checkbit = 0x8000; checkbit; checkbit >>= 1) {
+				if (varying_bits & checkbit) {
 					for (size_t px = 0; px != permutation_count; ++px)
 						permutation_buffer[px + permutation_count] = permutation_buffer[px] | checkbit;
 					permutation_count <<= 1;
 				}
 			}
 
-			for (size_t px = 0; px != permutation_count; ++px)
-			{
+			for (size_t px = 0; px != permutation_count; ++px) {
 				if (opcode_dispatch[permutation_buffer[px]])
 					continue;
 				opcode_dispatch[permutation_buffer[px]] = &handler_stub;
@@ -286,81 +282,36 @@ namespace casioemu
 		delete[] permutation_buffer;
 	}
 
-	void CPU::SetupRegisterProxies()
-	{
-		for (size_t ix = 0; ix != sizeof(register_record_sources) / sizeof(register_record_sources[0]); ++ix)
-		{
-			RegisterRecord &record = register_record_sources[ix];
+	void CPU::SetupRegisterProxies() {
+		for (size_t ix = 0; ix != sizeof(register_record_sources) / sizeof(register_record_sources[0]); ++ix) {
+			RegisterRecord& record = register_record_sources[ix];
 
-			if (record.stub)
-			{
-				RegisterStub *register_stub = &(this->*record.stub);
+			if (record.stub) {
+				RegisterStub* register_stub = &(this->*record.stub);
 				register_stub->name = record.name;
 				register_proxies[record.name] = register_stub;
 			}
 
-			if (record.stub_array)
-			{
-				if (record.array_size == 1)
-				{
-					RegisterStub *register_stub = &(this->*record.stub_array)[record.array_base];
+			if (record.stub_array) {
+				if (record.array_size == 1) {
+					RegisterStub* register_stub = &(this->*record.stub_array)[record.array_base];
 					register_stub->name = record.name;
 					register_proxies[record.name] = register_stub;
 				}
-				else
-				{
-					for (size_t rx = 0; rx != record.array_size; ++rx)
-					{
+				else {
+					for (size_t rx = 0; rx != record.array_size; ++rx) {
 						std::stringstream ss;
 						ss << record.name << rx;
-						RegisterStub *register_stub = &(this->*record.stub_array)[rx];
+						RegisterStub* register_stub = &(this->*record.stub_array)[rx];
 						register_stub->name = ss.str();
 						register_proxies[ss.str()] = register_stub;
 					}
 				}
 			}
 		}
-
-		*(CPU **)lua_newuserdata(emulator.lua_state, sizeof(CPU *)) = this;
-		lua_newtable(emulator.lua_state);
-		lua_pushcfunction(emulator.lua_state, [](lua_State *lua_state) {
-			CPU *cpu = *(CPU **)lua_topointer(lua_state, 1);
-			std::string index = lua_tostring(lua_state, 2);
-			if (index == "bt")
-			{
-				lua_pushstring(lua_state, cpu->GetBacktrace().c_str());
-				return 1;
-			}
-			auto it = cpu->register_proxies.find(index);
-			if (it == cpu->register_proxies.end())
-				return 0;
-			RegisterStub *reg_stub = it->second;
-			if (reg_stub->type_size == 1)
-				lua_pushinteger(lua_state, (uint8_t)reg_stub->raw);
-			else
-				lua_pushinteger(lua_state, (uint16_t)reg_stub->raw);
-			return 1;
-		});
-		lua_setfield(emulator.lua_state, -2, "__index");
-		lua_pushcfunction(emulator.lua_state, [](lua_State *lua_state) {
-			CPU *cpu = *(CPU **)lua_topointer(lua_state, 1);
-			auto it = cpu->register_proxies.find(lua_tostring(lua_state, 2));
-			if (it == cpu->register_proxies.end())
-				return 0;
-			RegisterStub *reg_stub = it->second;
-			if (reg_stub->type_size == 1)
-				reg_stub->raw = (uint8_t)lua_tointeger(lua_state, 3);
-			else
-				reg_stub->raw = (uint16_t)lua_tointeger(lua_state, 3);
-			return 0;
-		});
-		lua_setfield(emulator.lua_state, -2, "__newindex");
-		lua_setmetatable(emulator.lua_state, -2);
-		lua_setglobal(emulator.lua_state, "cpu");
 	}
 
-	uint16_t CPU::Fetch()
-	{
+	uint16_t CPU::Fetch() {
 		if (reg_csr.raw & ~impl_csr_mask)
 			reg_csr.raw &= impl_csr_mask;
 		if (reg_pc.raw & 1)
@@ -371,21 +322,25 @@ namespace casioemu
 		return opcode;
 	}
 
-	void CPU::Next()
-	{
+	void CPU::Next() {
 		/**
 		 * `reg_dsr` only affects the current instruction. The old DSR is stored in
 		 * `impl_last_dsr` and is recalled every time a DSR instruction is encountered
 		 * that activates DSR addressing without actually changing DSR.
 		 */
-		reg_dsr	= 0;
+		reg_dsr = 0;
 
 		emulator.chipset.isMIBlocked = false;
 
-		while (1)
-		{
+		while (1) {
+			InstructionEventArgs iea{};
+			RaiseEvent(on_instruction, *this, iea);
+			if (iea.should_break) {
+				emulator.SetPaused(true);
+			}
+
 			impl_opcode = Fetch();
-			OpcodeSource *handler = opcode_dispatch[impl_opcode];
+			OpcodeSource* handler = opcode_dispatch[impl_opcode];
 
 			if (!handler)
 				continue;
@@ -394,14 +349,12 @@ namespace casioemu
 			if (handler->hint & H_TI)
 				impl_long_imm = Fetch();
 
-			for (size_t ix = 0; ix != sizeof(impl_operands) / sizeof(impl_operands[0]); ++ix)
-			{
+			for (size_t ix = 0; ix != sizeof(impl_operands) / sizeof(impl_operands[0]); ++ix) {
 				impl_operands[ix].value = (impl_opcode >> handler->operands[ix].shift) & handler->operands[ix].mask;
 				impl_operands[ix].register_index = impl_operands[ix].value;
 				impl_operands[ix].register_size = handler->operands[ix].register_size;
 
-				if (impl_operands[ix].register_size)
-				{
+				if (impl_operands[ix].register_size) {
 					impl_operands[ix].value = 0;
 					for (size_t bx = 0; bx != impl_operands[ix].register_size; ++bx)
 						impl_operands[ix].value |= (uint64_t)(reg_r[impl_operands[ix].register_index + bx]) << (bx * 8);
@@ -419,14 +372,7 @@ namespace casioemu
 			 */
 			impl_flags_out = PSW_Z;
 			(this->*(handler->handler_function))();
-			if(code_viewer){
-				if((code_viewer->debug_flags & DEBUG_BREAKPOINT) && code_viewer->TryTrigBP(reg_csr, reg_pc)){
-					emulator.SetPaused(true);
-				}
-				else if((code_viewer->debug_flags)&DEBUG_STEP && code_viewer->TryTrigBP(reg_csr, reg_pc,false)){
-					emulator.SetPaused(true);
-				}
-			}
+
 			reg_psw &= ~impl_flags_changed;
 			reg_psw |= impl_flags_out & impl_flags_changed;
 
@@ -436,26 +382,26 @@ namespace casioemu
 
 			if (!(handler->hint & H_DS))
 				break;
-			
 		}
 	}
 
-	void CPU::SetMemoryModel(MemoryModel _memory_model)
-	{
+	void CPU::SetMemoryModel(MemoryModel _memory_model) {
 		memory_model = _memory_model;
 	}
 
-	void CPU::Reset()
-	{
+	void CPU::SetCPUModel(CPUModel _cpu_model) {
+		cpu_model = _cpu_model;
+	}
+
+	void CPU::Reset() {
 		reg_sp = emulator.chipset.mmu.ReadCode(0);
 		reg_dsr = 0;
 		reg_psw = 0;
 		fetch_addition = 2;
-		stack.clear();
+		stack.get()->clear();
 	}
 
-	void CPU::Raise(size_t exception_level, size_t index)
-	{
+	void CPU::Raise(size_t exception_level, size_t index) {
 		reg_epsw[exception_level].raw = reg_psw.raw;
 		reg_elr[exception_level].raw = reg_pc.raw;
 		reg_ecsr[exception_level].raw = reg_csr.raw;
@@ -468,50 +414,40 @@ namespace casioemu
 		reg_pc.raw = emulator.chipset.mmu.ReadCode(index * 2);
 	}
 
-	void CPU::CorruptByDSR()
-	{
+	void CPU::CorruptByDSR() {
 		fetch_addition = 0x0FF0;
 	}
 
-	size_t CPU::GetExceptionLevel()
-	{
+	size_t CPU::GetExceptionLevel() {
 		return reg_psw.raw & PSW_ELEVEL;
 	}
 
-	bool CPU::GetMasterInterruptEnable()
-	{
+	bool CPU::GetMasterInterruptEnable() {
 		return reg_psw & PSW_MIE;
 	}
 
-	std::string CPU::GetBacktrace() const
-	{
+	std::string CPU::GetBacktrace() const {
 		std::stringstream output;
 		output << std::hex << std::setfill('0') << std::uppercase;
-		for (StackFrame frame : stack)
-		{
+		auto stack = this->stack.get_const();
+		for (StackFrame frame : *stack) {
 			output << "  function "
-				<< std::setw(6) << (((size_t)frame.new_csr) << 16 | frame.new_pc)
-				<< " returns to " << std::setw(6);
-			if (frame.lr_pushed)
-			{
-				uint16_t saved_lr, saved_lcsr = 0;
-				MMU &mmu = emulator.chipset.mmu;
-				saved_lr = ((uint16_t)mmu.ReadData(frame.lr_push_address + 1))
-					<< 8 | mmu.ReadData(frame.lr_push_address);
-				if (memory_model == MM_LARGE)
-					saved_lcsr = mmu.ReadData(frame.lr_push_address + 2);
-				output << (((size_t)saved_lcsr) << 16 | saved_lr);
+				   << std::setw(6) << (frame.new_pc)
+				   << " returns to " << std::setw(6);
+			if (frame.lr_pushed) {
+				output << frame.lr;
 
 				output << " - lr pushed at "
-					<< std::setw(4) << frame.lr_push_address;
+					   << std::setw(4) << frame.lr_push_address;
 			}
-			else
-			{
+			else {
 				output << (((size_t)reg_lcsr) << 16 | reg_lr);
+			}
+			if (frame.is_jump) {
+				output << " (called by pop pc)";
 			}
 			output << '\n';
 		}
 		return output.str();
 	}
-}
-
+} // namespace casioemu

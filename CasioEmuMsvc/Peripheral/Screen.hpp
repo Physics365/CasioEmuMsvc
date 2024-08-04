@@ -1,10 +1,4 @@
-#pragma once
-#include "../Config.hpp"
-
-#include "Peripheral.hpp"
-
-namespace casioemu
-{
-	Peripheral *CreateScreen(Emulator& emulator);
+﻿#pragma once
+namespace casioemu {
+	class Peripheral* CreateScreen(class Emulator& emulator);
 }
-
