@@ -4,6 +4,7 @@ template <class T>
 class ConcurrentObject {
 protected:
 	mutable std::mutex mtx;
+	mutable std::thread::id own_thread;
 	T* storage;
 
 public:
@@ -22,13 +23,20 @@ public:
 	class ObjectRef {
 	public:
 		ConcurrentObject<T>& obj;
-		bool own_lock = false;
+		bool own_lock = true;
 		ObjectRef(ConcurrentObject<T>& obj) : obj(obj) {
-			own_lock = obj.mtx.try_lock();
+			if (obj.own_thread == std::this_thread::get_id()) {
+				own_lock = false;
+				return;
+			}
+			obj.own_thread = std::this_thread::get_id();
+			obj.mtx.lock();
 		}
 		~ObjectRef() {
-			if (own_lock)
+			if (own_lock) {
 				obj.mtx.unlock();
+				obj.own_thread = std::thread::id::id();
+			}
 		}
 		T* operator->() {
 			return obj.storage;
@@ -40,13 +48,20 @@ public:
 	class ConstObjectRef {
 	public:
 		const ConcurrentObject<T>& obj;
-		bool own_lock = false;
+		bool own_lock = true;
 		ConstObjectRef(const ConcurrentObject<T>& obj) : obj(obj) {
-			own_lock = obj.mtx.try_lock();
+			if (obj.own_thread == std::this_thread::get_id()) {
+				own_lock = false;
+				return;
+			}
+			obj.own_thread = std::this_thread::get_id();
+			obj.mtx.lock();
 		}
 		~ConstObjectRef() {
-			if (own_lock)
+			if (own_lock) {
 				obj.mtx.unlock();
+				obj.own_thread = std::thread::id::id();
+			}
 		}
 		const T* operator->() {
 			return obj.storage;

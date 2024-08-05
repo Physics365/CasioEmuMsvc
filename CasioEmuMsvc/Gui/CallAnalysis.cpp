@@ -40,7 +40,7 @@ struct CallAnalysis : public UIWindow {
 			fc.xr0 = (sender.reg_r[3] << 24) | (sender.reg_r[2] << 16) | (sender.reg_r[1] << 8) | (sender.reg_r[0]);
 			fc.pc = pc;
 			fc.lr = lr;
-			fc.stack = sender.GetBacktrace();
+			fc.stack = sender.GetBacktrace(); // 已经上锁了，草（
 			funcs[pc].push_back(fc);
 		}
 	}
