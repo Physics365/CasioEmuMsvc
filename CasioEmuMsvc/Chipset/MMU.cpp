@@ -53,6 +53,7 @@ namespace casioemu {
 		//	return (((uint16_t)emulator.chipset.flash_data[off + segment_offset + 1]) << 8) | emulator.chipset.flash_data[off + segment_offset];
 		// }
 		//  Read from rom data?
+
 		auto rom = emulator.chipset.rom_data.data();
 		auto rom_size = emulator.chipset.rom_data.size();
 		switch (emulator.hardware_id) {
@@ -167,6 +168,11 @@ namespace casioemu {
 	void MMU::WriteData(size_t offset, uint8_t data, bool softwareWrite) {
 		// if (offset >= (1 << 24))
 		//	PANIC("offset doesn't fit 24 bits\n");
+
+		if (offset == 0x60721) {
+			std::cout << data;
+			return;
+		}
 
 		MemoryEventArgs mea{};
 		mea.offset = offset;

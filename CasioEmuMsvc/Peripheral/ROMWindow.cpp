@@ -18,11 +18,6 @@ namespace casioemu {
 		void Initialise();
 	};
 	static void SetupROMRegion(MMURegion& region, size_t region_base, size_t size, size_t rom_base, bool strict_memory, Emulator& emulator, std::string description = {}) {
-		if (rom_base + size > emulator.chipset.rom_data.size()) {
-			printf("[ROMWindow][Warn] Invalid ROM region: base %zx, size %zx\n", rom_base, size);
-			return;
-			// emulator.chipset.rom_data.resize(rom_base + size);
-		}
 		uint8_t* data = emulator.chipset.rom_data.data();
 		auto offset = (long long)rom_base - (long long)region_base;
 		if (description.empty())
@@ -56,6 +51,7 @@ namespace casioemu {
 		switch (emulator.hardware_id) { // Initializer list cannot be used with move-only type: https://stackoverflow.com/q/8468774
 		case HW_ES_PLUS:
 			regions.reset(new MMURegion[3]);
+			emulator.chipset.rom_data.resize(0x20000, 0);
 			SetupROMRegion(regions[0], 0x00000, 0x08000, 0x00000, strict_memory, emulator);
 			SetupROMRegion(regions[1], 0x10000, 0x10000, 0x10000, strict_memory, emulator);
 			SetupROMRegion(regions[2], 0x80000, 0x10000, 0x00000, strict_memory, emulator);
@@ -63,6 +59,7 @@ namespace casioemu {
 
 		case HW_CLASSWIZ:
 			regions.reset(new MMURegion[5]);
+			emulator.chipset.rom_data.resize(0x40000, 0);
 			SetupROMRegion(regions[0], 0x00000, 0x0D000, 0x00000, strict_memory, emulator);
 			SetupROMRegion(regions[1], 0x10000, 0x10000, 0x10000, strict_memory, emulator);
 			SetupROMRegion(regions[2], 0x20000, 0x10000, 0x20000, strict_memory, emulator);
@@ -71,6 +68,7 @@ namespace casioemu {
 			break;
 		case HW_CLASSWIZ_II:
 			regions.reset(new MMURegion[16]);
+			emulator.chipset.rom_data.resize(0x60000, 0);
 			SetupROMRegion(regions[0], 0x00000, 0x09000, 0x00000, strict_memory, emulator);
 			SetupROMRegion(regions[1], 0x10000, 0x10000, 0x10000, strict_memory, emulator);
 			SetupROMRegion(regions[2], 0x20000, 0x10000, 0x20000, strict_memory, emulator);
@@ -100,6 +98,7 @@ namespace casioemu {
 			break;
 		case HW_FX_5800P:
 			regions.reset(new MMURegion[2]);
+			emulator.chipset.rom_data.resize(0x20000, 0);
 			SetupROMRegion(regions[0], 0x00000, 0x8000, 0x00000, strict_memory, emulator);
 			SetupROMRegion(regions[1], 0x10000, 0x10000, 0x10000, strict_memory, emulator);
 		}
