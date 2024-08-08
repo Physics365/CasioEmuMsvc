@@ -103,28 +103,28 @@ int main(int argc, char* argv[]) {
 
 	bool guiCreated = false;
 	auto frame_event = SDL_RegisterEvents(1);
+	bool busy = false;
 	std::thread t3([&]() {
 		SDL_Event se{};
 		se.type = frame_event;
 		se.user.windowID = SDL_GetWindowID(emulator.window);
 		while (1) {
-			SDL_PushEvent(&se);
-			SDL_Delay(25);
+			if (!busy)
+				SDL_PushEvent(&se);
+			SDL_Delay(24);
 		}
 	});
 	t3.detach();
 	test_gui(&guiCreated);
 	while (emulator.Running()) {
 		SDL_Event event{};
+		busy = false;
 		if (!SDL_PollEvent(&event))
 			continue;
+		busy = true;
 		if (event.type == frame_event) {
 			gui_loop();
 			emulator.Frame();
-			continue;
-		}
-		if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
-			ImGui_ImplSDL2_ProcessEvent(&event);
 			continue;
 		}
 		switch (event.type) {
@@ -135,9 +135,6 @@ int main(int argc, char* argv[]) {
 				std::exit(0);
 				break;
 			case SDL_WINDOWEVENT_RESIZED:
-				if (event.window.windowID == SDL_GetWindowID(emulator.window)) {
-					emulator.WindowResize(event.window.data1, event.window.data2);
-				}
 				break;
 			}
 			break;
@@ -148,6 +145,11 @@ int main(int argc, char* argv[]) {
 		case SDL_TEXTINPUT:
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEWHEEL:
+		default:
+			if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
+				ImGui_ImplSDL2_ProcessEvent(&event);
+				continue;
+			}
 			emulator.UIEvent(event);
 			break;
 		}
