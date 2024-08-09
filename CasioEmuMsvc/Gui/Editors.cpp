@@ -1,6 +1,7 @@
 ﻿#include "Editors.h"
 #include "../Chipset/Chipset.hpp"
 #include "../Models.h"
+#include "CPU.hpp"
 #include "Ui.hpp"
 #include "hex.hpp"
 struct HexEditor : public UIWindow, public MemoryEditor {
@@ -29,17 +30,37 @@ struct SpansHexEditor : public UIWindow, public MemoryEditor {
 
 inline auto MMU_Hex(auto he) {
 	he->ReadFn = [](const ImU8* data, size_t off) -> ImU8 {
-		return me_mmu->ReadData((size_t)data+off, 0);
+		return me_mmu->ReadData((size_t)data + off, 0);
 	};
 	he->WriteFn = [](ImU8* data, size_t off, ImU8 d) {
 		return me_mmu->WriteData((size_t)data + off, d, 0);
 	};
 	return he;
 }
+inline auto Highlight_Default(auto he) {
+	he->HighlightFn = [](const ImU8* data, size_t off) -> bool {
+		if ((uint32_t)(data + off) == (uint32_t)m_emu->chipset.cpu.reg_sp) {
+			return true;
+		}
+		if ((uint32_t)(data + off) == (uint32_t)casioemu::GetInputAreaOffset(m_emu->hardware_id) + *((unsigned char*)n_ram_buffer - casioemu::GetRamBaseAddr(m_emu->hardware_id) + casioemu::GetCursorOffset(m_emu->hardware_id))) {
+			return true;
+		}
+		return false;
+	};
+	return he;
+}
 
 std::vector<UIWindow*> GetEditors() {
 	std::vector<UIWindow*> windows;
-	windows.push_back(MMU_Hex(new SpansHexEditor{"Ram", (void*)casioemu::GetRamBaseAddr(m_emu->hardware_id), 0x10000 - casioemu::GetRamBaseAddr(m_emu->hardware_id), casioemu::GetRamBaseAddr(m_emu->hardware_id), GetCommonMemLabels(m_emu->hardware_id)}));
+	windows.push_back(
+		Highlight_Default(
+			MMU_Hex(
+				new SpansHexEditor{
+					"Ram",
+					(void*)casioemu::GetRamBaseAddr(m_emu->hardware_id),
+					0x10000 - casioemu::GetRamBaseAddr(m_emu->hardware_id),
+					casioemu::GetRamBaseAddr(m_emu->hardware_id),
+					GetCommonMemLabels(m_emu->hardware_id)})));
 	windows.push_back(new HexEditor{"Rom", m_emu->chipset.rom_data.data(), m_emu->chipset.rom_data.size(), 0});
 	if (m_emu->hardware_id == casioemu::HW_FX_5800P) {
 		windows.push_back(MMU_Hex(new HexEditor{"PRam", (void*)0x40000, 0x8000, 0x40000}));

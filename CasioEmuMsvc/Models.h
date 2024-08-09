@@ -556,6 +556,10 @@ namespace casioemu {
 		return hid == HW_ES_PLUS ? 0x829E : hid == HW_CLASSWIZ ? 0xD392
 															   : 0xBA68;
 	}
+	inline constexpr size_t GetCursorOffset(HardwareId hid) {
+		return hid == HW_ES_PLUS ? 0x8110 : hid == HW_CLASSWIZ ? 0xD155
+															   : 0x91E5;
+	}
 	inline constexpr size_t GetScreenBufferOffset(HardwareId hid,int index) {
 		if (index == 1) {
 			return hid == HW_ES_PLUS ? 0 : hid == HW_CLASSWIZ ? 0xDDD4

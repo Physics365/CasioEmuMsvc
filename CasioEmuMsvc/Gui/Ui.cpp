@@ -77,6 +77,7 @@ void gui_loop() {
 	SDL_RenderPresent(renderer);
 }
 int test_gui(bool* guiCreated) {
+	SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 	window = SDL_CreateWindow("CasioEmuMsvc Debugger", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 	if (renderer == nullptr) {

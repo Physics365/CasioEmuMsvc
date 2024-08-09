@@ -49,8 +49,9 @@ namespace casioemu {
 		unsigned char pd_value{};
 		bool enable_new_screen{};
 		bool is_sample_rom{};
+		bool legacy_ko{};
 		void Write(std::ostream& os) const {
-			Binary::Write(os, std::string("\n\nGenshin Configuration file v49\n\n原神配置文件v49\n\n"));
+			Binary::Write(os, std::string("\n\nGenshin Configuration file v50\n\n原神配置文件v50\n\n"));
 			Binary::Write(os, csr_mask);
 			Binary::Write(os, hardware_id);
 			Binary::Write(os, real_hardware);
@@ -64,6 +65,7 @@ namespace casioemu {
 			Binary::Write(os, flash_path);
 			Binary::Write(os, enable_new_screen);
 			Binary::Write(os, is_sample_rom);
+			Binary::Write(os, legacy_ko);
 		}
 		void Read(std::istream& is) {
 			{
@@ -83,6 +85,7 @@ namespace casioemu {
 			Binary::Read(is, flash_path);
 			Binary::Read(is, enable_new_screen);
 			Binary::Read(is, is_sample_rom);
+			Binary::Read(is, legacy_ko);
 		}
 	};
 } // namespace casioemu

@@ -171,9 +171,6 @@
     <ClCompile Include="Gui\imgui\imgui_demo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="StartupUi\Editor.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">

@@ -319,7 +319,6 @@
     <ClCompile Include="Gui\Hooks.cpp" />
     <ClCompile Include="Gui\imgui\imgui_demo.cpp" />
     <ClCompile Include="Peripheral\ROMWindow.cpp" />
-    <ClCompile Include="StartupUi\Editor.cpp" />
     <ClCompile Include="StartupUi\StartupUi.cpp" />
     <ClCompile Include="Gui\CasioData.cpp" />
     <ClCompile Include="Gui\CodeViewer.cpp" />
