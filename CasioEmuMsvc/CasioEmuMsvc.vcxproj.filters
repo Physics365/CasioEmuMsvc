@@ -171,6 +171,9 @@
     <ClCompile Include="Gui\imgui\imgui_demo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Peripheral\Uart.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">
@@ -357,6 +360,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Peripheral\Uart.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

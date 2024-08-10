@@ -22,6 +22,7 @@
 #include "../Peripheral/Timer.hpp"
 #include "../Peripheral/TimerBaseCounter.hpp"
 #include "../Peripheral/WatchdogTimer.hpp"
+#include "Uart.h"
 #include "../Romu.h"
 #include "CPU.hpp"
 // #include "HighResClock.h"
@@ -306,7 +307,9 @@ namespace casioemu {
 			peripherals.push_front(CreatePowerSupply(emulator));
 		if (emulator.hardware_id == HW_FX_5800P)
 			peripherals.push_front(CreateFx5800Flash(emulator));
-
+		if (emulator.hardware_id == HW_CLASSWIZ_II) {
+			peripherals.push_front(CreateUart(emulator));
+		}
 		peripherals.push_front(CreateBuzzerDriver(emulator));
 		peripherals.push_front(CreateTimerBaseCounter(emulator));
 		peripherals.push_front(CreateRtc(emulator));

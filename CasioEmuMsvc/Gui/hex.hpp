@@ -192,7 +192,7 @@ struct MemoryEditor {
 
 		// We begin into our scrolling region with the 'ImGuiWindowFlags_NoMove' in order to prevent click from moving the window.
 		// This is used as a facility since our main click detection code doesn't assign an ActiveId so the click would normally be caught as a window-move.
-		const float height_separator = style.ItemSpacing.y;
+		const float height_separator = style.ItemSpacing.y + style.ItemInnerSpacing.y;
 		float footer_height = OptFooterExtraHeight;
 		if (OptShowOptions)
 			footer_height += height_separator + ImGui::GetFrameHeightWithSpacing() * 1;

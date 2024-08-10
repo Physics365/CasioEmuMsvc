@@ -1,5 +1,4 @@
 ﻿#include "Screen.hpp"
-
 #include "../Chipset/Chipset.hpp"
 #include "../Chipset/MMU.hpp"
 #include "../Chipset/MMURegion.hpp"
@@ -7,11 +6,19 @@
 #include "../Gui/HwController.h"
 #include "../Logger.hpp"
 #include "../ModelInfo.h"
+#include "Models.h"
+#include "Ui.hpp"
+#include <algorithm> // for std::generate
+#include <cstdlib>	 // for std::rand
+#include <ctime>	 // for std::time
 #include <vector>
-// #include "../ModelInfo.h"
-// #include "../ModelInfo.h"
-#include "../Gui/Ui.hpp"
-#include "../Models.h"
+
+void fillRandomData(unsigned char* buf, size_t size) {
+	std::srand(static_cast<unsigned int>(std::time(nullptr))); // 使用当前时间作为随机种子
+	std::generate(buf, buf + size, []() {
+		return static_cast<unsigned char>(std::rand() % 256); // 生成0到255之间的随机数
+	});
+}
 
 namespace casioemu {
 	struct SpriteBitmap {
@@ -39,17 +46,26 @@ namespace casioemu {
 			ROW_SIZE_DISP,
 			SPR_MAX;
 
-		MMURegion region_buffer, region_buffer1, region_contrast, region_brightness, region_contrast2, region_mode, region_range, region_select, region_offset, region_refresh_rate;
-		uint8_t *screen_buffer, *screen_buffer1, screen_contrast, screen_brightness, screen_contrast2, screen_mode, screen_range, screen_select, screen_offset, screen_refresh_rate;
-		uint8_t unk_f034;
+		MMURegion region_buffer{}, region_buffer1{}, region_contrast{}, region_brightness{}, region_contrast2{}, region_mode{}, region_range{}, region_select{}, region_offset{}, region_refresh_rate{};
+		uint8_t *screen_buffer{}, *screen_buffer1{}, screen_contrast{}, screen_brightness{}, screen_contrast2{}, screen_mode{}, screen_range{}, screen_select{}, screen_offset{}, screen_refresh_rate{};
+
+		MMURegion region_power{}, region_contrast2_en{};
+		uint8_t screen_power{}, screen_contrast2_en{};
+
+		MMURegion region_unk1{}, region_unk2{};
+
+		uint8_t unk_f034{};
 		float screen_scan_alpha[64]{};
 		float position = 0;
-		SDL_Renderer* renderer;
-		SDL_Texture* interface_texture;
+		SDL_Renderer* renderer{};
+		SDL_Texture* interface_texture{};
 		float screen_ink_alpha[128 * 192]{};
 		static const SpriteBitmap sprite_bitmap[];
 		std::vector<SpriteInfo> sprite_info;
-		ColourInfo ink_colour;
+		ColourInfo ink_colour{};
+
+		bool inited = 0;
+		bool enabled_2 = 0;
 
 	public:
 		Screen(Emulator& emu)
@@ -61,7 +77,12 @@ namespace casioemu {
 			});
 			thd.detach();
 		}
-
+		~Screen() {
+			if (screen_buffer)
+				delete[] screen_buffer;
+			if (screen_buffer1)
+				delete[] screen_buffer1;
+		}
 		void Initialise() override;
 		void Uninitialise() override;
 		void Frame() override;
@@ -80,10 +101,23 @@ namespace casioemu {
 			if (sb < 3) {
 				sb = 3;
 			}
-			int ink_alpha_on = 20 + screen_contrast * 16 - sb * 8;
-			if (ink_alpha_on > 255)
-				ink_alpha_on = 255;
-			int ink_alpha_off = (screen_contrast) * 5 - sb * 13;
+			auto contrast = (int)screen_contrast - 11;
+			if (screen_contrast2_en) {
+				contrast += screen_contrast2 * 0.5;
+			}
+			if (contrast < 0) {
+				contrast = 0;
+			}
+			auto coeff = 16;
+			auto off = 0;
+			if constexpr (hardware_id != HW_CLASSWIZ_II) {
+				coeff = 28;
+				off = -240;
+			}
+			int ink_alpha_on = off + contrast * coeff - sb * 8;
+			int ink_alpha_off = off + 20 + (contrast) * (coeff - 11) - sb * 13;
+			if (ink_alpha_on < 0)
+				ink_alpha_on = 0;
 			if (ink_alpha_off < 0)
 				ink_alpha_off = 0;
 			float ratio = 0;
@@ -92,6 +126,8 @@ namespace casioemu {
 			else
 				ratio = 1 - 5e-4;
 			bool enable_status, enable_dotmatrix, clear_dots;
+
+			bool mode_6 = false;
 
 			auto screen_buffer = this->screen_buffer;
 			uint8_t* screen_buffer1;
@@ -106,6 +142,9 @@ namespace casioemu {
 				}
 				row_size = ROW_SIZE_DISP;
 			}
+
+			if (!enabled_2)
+				goto clean_scr;
 
 			switch (screen_mode & 7) {
 			case 4: // 100
@@ -124,8 +163,7 @@ namespace casioemu {
 				enable_dotmatrix = true;
 				clear_dots = true;
 				enable_status = true;
-				ink_alpha_on = 80;
-				ink_alpha_off = 20;
+				mode_6 = true;
 				break;
 
 			default:
@@ -136,7 +174,7 @@ namespace casioemu {
 			{
 				bool flip_screen_h = screen_mode & 0b1000;
 				bool flip_screen_v = !(screen_mode & 0b10000);
-				if (emulator.hardware_id == HW_CLASSWIZ || emulator.hardware_id == HW_CLASSWIZ_II) {
+				if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
 				}
 				else {
 					flip_screen_v = flip_screen_v = 0;
@@ -144,8 +182,6 @@ namespace casioemu {
 				int rng1 = (4 - (screen_range & 0x3));
 				ink_alpha_off *= (4 / rng1);
 				ink_alpha_on *= (4 / rng1);
-				ink_alpha_off = std::clamp(ink_alpha_off, 0, 255);
-				ink_alpha_on = std::clamp(ink_alpha_on, 0, 255);
 				int rng = rng1 * 8;
 
 				if (enable_status) {
@@ -197,6 +233,9 @@ namespace casioemu {
 					static constexpr auto SPR_PIXEL = 0;
 					SDL_Rect dest = Screen<hardware_id>::sprite_info[SPR_PIXEL].dest;
 					int ink_alpha = ink_alpha_off;
+					if (mode_6) {
+						ink_alpha_on = ink_alpha_off /= 2.55;
+					}
 					if constexpr (hardware_id == HW_CLASSWIZ_II) {
 						for (int iy2 = 1; iy2 != (N_ROW + 1); ++iy2) {
 							int iy = (iy2 + screen_offset) % (N_ROW + 1);
@@ -397,156 +436,264 @@ namespace casioemu {
 
 	template <HardwareId hardware_id>
 	void Screen<hardware_id>::Initialise() {
-		renderer = emulator.GetRenderer();
-		interface_texture = emulator.GetInterfaceTexture();
-		sprite_info.resize(SPR_MAX);
-		for (int ix = 0; ix != SPR_MAX; ++ix)
-			sprite_info[ix] = emulator.modeldef.sprites[sprite_bitmap[ix].name];
+		if (!inited) {
+			renderer = emulator.GetRenderer();
+			interface_texture = emulator.GetInterfaceTexture();
+			sprite_info.resize(SPR_MAX);
+			for (int ix = 0; ix != SPR_MAX; ++ix)
+				sprite_info[ix] = emulator.modeldef.sprites[sprite_bitmap[ix].name];
 
-		ink_colour = emulator.modeldef.ink_color;
+			ink_colour = emulator.modeldef.ink_color;
 
-		screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
-		memset(screen_buffer, 0, (N_ROW + 1) * ROW_SIZE);
-		if constexpr (hardware_id != HW_CLASSWIZ_II) {
-			region_buffer.Setup(
-				0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this, [](MMURegion* region, size_t offset) {
+			screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
+			fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
+			if (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+				region_power.Setup(
+					0xF03D, 1, "Screen/Power", this,
+					[](MMURegion* region, size_t offset) {
+						return ((Screen*)region->userdata)->screen_power;
+					},
+					[](MMURegion* region, size_t offset, uint8_t data) {
+						((Screen*)region->userdata)->screen_power = data & 0xf;
+						if ((data & 1) == 0) { // 关闭屏幕
+							((Screen*)region->userdata)->Uninitialise();
+						}
+						else {
+							((Screen*)region->userdata)->Initialise();
+						}
+					},
+					emulator);
+			}
+			if constexpr (hardware_id == HW_CLASSWIZ_II) {
+				screen_buffer1 = new uint8_t[(N_ROW + 1) * ROW_SIZE];
+				fillRandomData(screen_buffer1, (N_ROW + 1) * ROW_SIZE);
+			}
+			inited = true;
+		}
+		if (!(hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) || (!enabled_2 && (screen_power & 1))) {
+			if constexpr (hardware_id != HW_CLASSWIZ_II) {
+				region_buffer.Setup(
+					0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this, [](MMURegion* region, size_t offset) {
 				offset -= region->base;
 				if (offset % ROW_SIZE >= ROW_SIZE_DISP)
 					return (uint8_t)0;
 				return ((Screen*)region->userdata)->screen_buffer[offset]; },
-				[](MMURegion* region, size_t offset, uint8_t data) {
+					[](MMURegion* region, size_t offset, uint8_t data) {
 					offset -= region->base;
 					if (offset % ROW_SIZE >= ROW_SIZE_DISP)
 						return;
 
 					auto this_obj = (Screen*)region->userdata;
 					this_obj->screen_buffer[offset] = data; },
-				emulator);
-		}
-		else {
-			screen_buffer1 = new uint8_t[(N_ROW + 1) * ROW_SIZE];
-			memset(screen_buffer1, 0, (N_ROW + 1) * ROW_SIZE);
-			region_select.Setup(0xF037, 1, "Screen/Select", &screen_select, MMURegion::DefaultRead<uint8_t, 0x04>,
-				MMURegion::DefaultWrite<uint8_t, 0x04>, emulator);
-			if (!emulator.modeldef.real_hardware) {
-				region_buffer.Setup(
-					0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
+					emulator);
+			}
+			else {
+				if (!emulator.modeldef.real_hardware) {
+					region_buffer.Setup(
+						0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
+						[](MMURegion* region, size_t offset) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return (uint8_t)0;
+							return ((Screen*)region->userdata)->screen_buffer[offset];
+						},
+						[](MMURegion* region, size_t offset, uint8_t data) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return;
+
+							auto this_obj = (Screen*)region->userdata;
+							this_obj->screen_buffer[offset] = data;
+						},
+						emulator);
+					region_buffer1.Setup(
+						0x89000, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer1", this,
+						[](MMURegion* region, size_t offset) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return (uint8_t)0;
+							return ((Screen*)region->userdata)->screen_buffer1[offset];
+						},
+						[](MMURegion* region, size_t offset, uint8_t data) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return;
+
+							auto this_obj = (Screen*)region->userdata;
+							this_obj->screen_buffer1[offset] = data;
+						},
+						emulator);
+				}
+				else {
+					region_buffer.Setup(
+						0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
+						[](MMURegion* region, size_t offset) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return (uint8_t)0;
+							if (((Screen*)region->userdata)->screen_select & 0x04) {
+								return ((Screen*)region->userdata)->screen_buffer1[offset];
+							}
+							else {
+								return ((Screen*)region->userdata)->screen_buffer[offset];
+							}
+						},
+						[](MMURegion* region, size_t offset, uint8_t data) {
+							offset -= region->base;
+							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+								return;
+
+							auto this_obj = (Screen*)region->userdata;
+							// * Set require_frame to true only if the value changed.
+							if (((Screen*)region->userdata)->screen_select & 0x04) {
+								this_obj->screen_buffer1[offset] = data;
+							}
+							else {
+								this_obj->screen_buffer[offset] = data;
+							}
+						},
+						emulator);
+				}
+			}
+			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+				region_range.Setup(0xF030, 1, "Screen/Range", &screen_range, MMURegion::DefaultRead<uint8_t, 0x2F>,
+					MMURegion::DefaultWrite<uint8_t, 0x2F>, emulator);
+			}
+			else {
+				region_range.Setup(0xF030, 1, "Screen/Range", &screen_range, MMURegion::DefaultRead<uint8_t, 0x07>,
+					MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
+			}
+
+			if constexpr (hardware_id == HW_CLASSWIZ_II) {
+				region_mode.Setup(
+					0xF031, 1, "Screen/Mode", this,
 					[](MMURegion* region, size_t offset) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return (uint8_t)0;
-						return ((Screen*)region->userdata)->screen_buffer[offset];
+						auto screen = ((Screen*)region->userdata);
+						return screen->screen_mode;
 					},
 					[](MMURegion* region, size_t offset, uint8_t data) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return;
+						auto screen = ((Screen*)region->userdata);
+						auto old = screen->screen_mode & 0b1000;
+						auto new_ = data & 0b1000;
+						if (old ^ new_) {
+							// TODO: 交换缓冲区有效视窗位数据
 
-						auto this_obj = (Screen*)region->userdata;
-						this_obj->screen_buffer[offset] = data;
+						}
+						screen->screen_mode = data & 127;
 					},
 					emulator);
-				region_buffer1.Setup(
-					0x89000, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer1", this,
+			}
+			else if constexpr (hardware_id == HW_CLASSWIZ) {
+				region_mode.Setup(0xF031, 1, "Screen/Mode", &screen_mode, MMURegion::DefaultRead<uint8_t, 63>,
+					MMURegion::DefaultWrite<uint8_t, 63>, emulator);
+			}
+			else {
+				region_mode.Setup(0xF031, 1, "Screen/Mode", &screen_mode, MMURegion::DefaultRead<uint8_t, 0x07>,
+					MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
+			}
+			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+				region_contrast.Setup(0xF032, 1, "Screen/Contrast", &screen_contrast, MMURegion::DefaultRead<uint8_t, 0x3F>,
+					MMURegion::DefaultWrite<uint8_t, 0x3F>, emulator);
+				region_unk1.Setup(
+					0xF03E, 1, "Screen/Unk1", this,
 					[](MMURegion* region, size_t offset) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return (uint8_t)0;
-						return ((Screen*)region->userdata)->screen_buffer1[offset];
+						return (uint8_t)0;
 					},
 					[](MMURegion* region, size_t offset, uint8_t data) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return;
-
-						auto this_obj = (Screen*)region->userdata;
-						this_obj->screen_buffer1[offset] = data;
+						((Screen*)region->userdata)->emulator.chipset.mmu.WriteData(0xF817, data);
+					},
+					emulator);
+				region_unk2.Setup(
+					0xF03F, 1, "Screen/Unk2", this,
+					[](MMURegion* region, size_t offset) {
+						return (uint8_t)0;
+					},
+					[](MMURegion* region, size_t offset, uint8_t data) {
+						((Screen*)region->userdata)->emulator.chipset.mmu.WriteData(0xF817, data);
 					},
 					emulator);
 			}
 			else {
-				region_buffer.Setup(
-					0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
-					[](MMURegion* region, size_t offset) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return (uint8_t)0;
-						if (((Screen*)region->userdata)->screen_select & 0x04) {
-							return ((Screen*)region->userdata)->screen_buffer1[offset];
-						}
-						else {
-							return ((Screen*)region->userdata)->screen_buffer[offset];
-						}
-					},
-					[](MMURegion* region, size_t offset, uint8_t data) {
-						offset -= region->base;
-						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-							return;
-
-						auto this_obj = (Screen*)region->userdata;
-						// * Set require_frame to true only if the value changed.
-						if (((Screen*)region->userdata)->screen_select & 0x04) {
-							this_obj->screen_buffer1[offset] = data;
-						}
-						else {
-							this_obj->screen_buffer[offset] = data;
-						}
-					},
-					emulator);
+				region_contrast.Setup(0xF032, 1, "Screen/Contrast", &screen_contrast, MMURegion::DefaultRead<uint8_t, 0x1f>,
+					MMURegion::DefaultWrite<uint8_t, 0x1f>, emulator);
 			}
-		}
-		if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
-			region_range.Setup(0xF030, 1, "Screen/Range", &screen_range, MMURegion::DefaultRead<uint8_t, 0x2F>,
-				MMURegion::DefaultWrite<uint8_t, 0x2F>, emulator);
-		}
-		else {
-			region_range.Setup(0xF030, 1, "Screen/Range", &screen_range, MMURegion::DefaultRead<uint8_t, 0x07>,
-				MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
-		}
-		// else {
-		//	region_range.Setup(0xF030, 1, "Screen/Range", &screen_range, MMURegion::DefaultRead<uint8_t, 0x07>,
-		//		MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
-		// }
 
-		if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
-			region_mode.Setup(0xF031, 1, "Screen/Mode", &screen_mode, MMURegion::DefaultRead<uint8_t, 63>,
-				MMURegion::DefaultWrite<uint8_t, 63>, emulator);
-		}
-		else {
-			region_mode.Setup(0xF031, 1, "Screen/Mode", &screen_mode, MMURegion::DefaultRead<uint8_t, 0x07>,
-				MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
-		}
-		if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
-			region_contrast.Setup(0xF032, 1, "Screen/Contrast", &screen_contrast, MMURegion::DefaultRead<uint8_t, 0x3F>,
-				MMURegion::DefaultWrite<uint8_t, 0x3F>, emulator);
-		}
-		else {
-			region_contrast.Setup(0xF032, 1, "Screen/Contrast", &screen_contrast, MMURegion::DefaultRead<uint8_t, 0x1f>,
-				MMURegion::DefaultWrite<uint8_t, 0x1f>, emulator);
-		}
+			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+				region_select.Setup(0xF037, 1, "Screen/Select", &screen_select, MMURegion::DefaultRead<uint8_t, 0x04 | 1>,
+					MMURegion::DefaultWrite<uint8_t, 0x04 | 1>, emulator);
 
-		region_brightness.Setup(0xF033, 1, "Screen/Brightness", &screen_brightness, MMURegion::DefaultRead<uint8_t, 0x07>,
-			MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
+				region_brightness.Setup(0xF033, 1, "Screen/Brightness", &screen_brightness, MMURegion::DefaultRead<uint8_t, 0x07>,
+					MMURegion::DefaultWrite<uint8_t, 0x07>, emulator);
 
-		if constexpr (hardware_id == HardwareId::HW_ES_PLUS) {
-			region_refresh_rate.Setup(0xF034, 1, "Screen/Unknown_F034", &unk_f034, MMURegion::DefaultRead<uint8_t, 0b11>,
-				MMURegion::DefaultWrite<uint8_t, 0b11>, emulator);
-		}
-		else {
-			region_offset.Setup(0xF039, 1, "Screen/DSPOFST", &screen_offset, MMURegion::DefaultRead<uint8_t, 0x3F>,
-				MMURegion::DefaultWrite<uint8_t, 0x3F>, emulator);
+				region_contrast2.Setup(0xF035, 1, "Screen/Contrast2", &screen_contrast2, MMURegion::DefaultRead<uint8_t, 0x1F>,
+					MMURegion::DefaultWrite<uint8_t, 0x1F>, emulator);
 
-			region_refresh_rate.Setup(0xF034, 1, "Screen/RefreshRate", &screen_refresh_rate, MMURegion::DefaultRead<uint8_t, 0x7F>,
-				MMURegion::DefaultWrite<uint8_t, 0x7F>, emulator);
+				region_contrast2_en.Setup(0xF036, 1, "Screen/Contrast2EN", &screen_contrast2_en, MMURegion::DefaultRead<uint8_t, 0b1001>,
+					MMURegion::DefaultWrite<uint8_t, 0b1001>, emulator);
+			}
+			else {
+				screen_contrast2 = 0x17;
+				screen_contrast2_en = 1;
+			}
 
+			if constexpr (hardware_id == HardwareId::HW_ES_PLUS) {
+				region_refresh_rate.Setup(0xF034, 1, "Screen/Unknown_F034", &unk_f034, MMURegion::DefaultRead<uint8_t, 0b11>,
+					MMURegion::DefaultWrite<uint8_t, 0b11>, emulator);
+			}
+			else {
+				region_offset.Setup(0xF039, 1, "Screen/DSPOFST", &screen_offset, MMURegion::DefaultRead<uint8_t, 0x3F>,
+					MMURegion::DefaultWrite<uint8_t, 0x3F>, emulator);
+
+				region_refresh_rate.Setup(0xF034, 1, "Screen/RefreshRate", &screen_refresh_rate, MMURegion::DefaultRead<uint8_t, 0x7F>,
+					MMURegion::DefaultWrite<uint8_t, 0x7F>, emulator);
+			}
+			enabled_2 = true;
 		}
 	}
 
 	template <HardwareId hardware_id>
 	void Screen<hardware_id>::Uninitialise() {
-		delete[] screen_buffer;
-		if constexpr (hardware_id == HW_CLASSWIZ_II)
-			delete[] screen_buffer1;
+		fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
+		if constexpr (hardware_id == HW_CLASSWIZ_II) {
+			fillRandomData(screen_buffer1, (N_ROW + 1) * ROW_SIZE);
+		}
+		if constexpr (hardware_id != HW_CLASSWIZ_II) {
+			region_buffer.Kill();
+		}
+		else {
+			if (!emulator.modeldef.real_hardware) {
+				region_buffer.Kill();
+				region_buffer1.Kill();
+			}
+			else {
+				region_buffer.Kill();
+			}
+		}
+		screen_range = 0;
+		region_range.Kill();
+		screen_mode = 0;
+		region_mode.Kill();
+		screen_contrast = 0;
+		region_contrast.Kill();
+		if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+			screen_select = 0;
+			region_select.Kill();
+			screen_contrast2 = 0;
+			region_contrast2.Kill();
+			screen_contrast2_en = 0;
+			region_contrast2_en.Kill();
+			region_unk1.Kill();
+			region_unk2.Kill();
+			screen_brightness = 0;
+			region_brightness.Kill();
+		}
+		screen_refresh_rate = 0;
+		region_refresh_rate.Kill();
+		if constexpr (hardware_id != HardwareId::HW_ES_PLUS) {
+			screen_offset = 0;
+			region_offset.Kill();
+		}
+		enabled_2 = false;
 	}
 	template <HardwareId hardware_id>
 	void Screen<hardware_id>::Frame() {
@@ -559,7 +706,6 @@ namespace casioemu {
 			x++;
 			SDL_RenderCopy(renderer, interface_texture, &sprite_info[ix].src, &sprite_info[ix].dest);
 		}
-		SDL_SetTextureColorMod(interface_texture, ink_colour.r, ink_colour.g, ink_colour.b);
 		static constexpr auto SPR_PIXEL = 0;
 		SDL_Rect dest = Screen<hardware_id>::sprite_info[SPR_PIXEL].dest;
 		for (int iy2 = 1; iy2 != (N_ROW + 1); ++iy2) {
@@ -568,7 +714,17 @@ namespace casioemu {
 			dest.y = sprite_info[SPR_PIXEL].dest.y + (iy2 - 1) * sprite_info[SPR_PIXEL].src.h;
 			for (int ix = 0; ix != ROW_SIZE_DISP; ++ix) {
 				for (uint8_t mask = 0x80; mask; mask >>= 1, dest.x += sprite_info[SPR_PIXEL].src.w) {
-					SDL_SetTextureAlphaMod(interface_texture, Uint8(std::clamp((int)screen_ink_alpha[x + iy2 * 192], 0, 255)));
+					if (screen_ink_alpha[x + iy2 * 192] > 255) {
+						SDL_SetTextureColorMod(interface_texture,
+							std::max(0, ink_colour.r - (int)(screen_ink_alpha[x + iy2 * 192] - 255)),
+							std::max(0, ink_colour.g - (int)((screen_ink_alpha[x + iy2 * 192] - 255) * 0.8)),
+							std::max(0, ink_colour.b - (int)((screen_ink_alpha[x + iy2 * 192] - 255) * 0.1)));
+						SDL_SetTextureAlphaMod(interface_texture, 255);
+					}
+					else {
+						SDL_SetTextureColorMod(interface_texture, ink_colour.r, ink_colour.g, ink_colour.b);
+						SDL_SetTextureAlphaMod(interface_texture, Uint8(std::clamp((int)screen_ink_alpha[x + iy2 * 192], 0, 255)));
+					}
 					x++;
 					SDL_RenderCopy(renderer, interface_texture, &sprite_info[SPR_PIXEL].src, &dest);
 				}
@@ -578,11 +734,6 @@ namespace casioemu {
 
 	template <HardwareId hardware_id>
 	void Screen<hardware_id>::Reset() {
-		memset(screen_ink_alpha, 0, sizeof(screen_ink_alpha));
-		memset(screen_buffer, 0, (N_ROW + 1) * ROW_SIZE);
-		if constexpr (hardware_id == HW_CLASSWIZ_II) {
-			memset(screen_buffer1, 0, (N_ROW + 1) * ROW_SIZE);
-		}
 	}
 
 	Peripheral* CreateScreen(Emulator& emulator) {

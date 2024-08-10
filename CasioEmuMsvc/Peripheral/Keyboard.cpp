@@ -89,7 +89,7 @@ namespace casioemu {
 			keyboard->RecalculateKI(); }, emulator);
 
 		region_input_filter.Setup(0xF042, 1, "Keyboard/InputFilter", &input_filter, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
-		if (emulator.hardware_id == HW_FX_5800P) { // TODO: label this as legacy ko?
+		if (emulator.hardware_id == HW_FX_5800P || emulator.modeldef.legacy_ko) {
 			region_ko.Setup(
 				0xF044, 1, "Keyboard/KO", this,
 				[](MMURegion* region, size_t offset) {
