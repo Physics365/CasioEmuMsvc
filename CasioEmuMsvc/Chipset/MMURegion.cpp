@@ -3,6 +3,7 @@
 #include "../Emulator.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
+#include <functional>
 
 namespace casioemu
 {

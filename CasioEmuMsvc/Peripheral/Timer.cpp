@@ -8,6 +8,7 @@
 #include <cmath>
 
 namespace casioemu {
+	// ML61X
 	class Timer : public Peripheral {
 		MMURegion region_counter, region_interval, region_F024, region_control;
 		uint16_t data_counter, data_interval;
@@ -149,7 +150,80 @@ namespace casioemu {
 		region_F024.Kill();
 		region_control.Kill();
 	}
+	template <typename ReadFunc, typename WriteFunc>
+		requires requires(ReadFunc read, WriteFunc write, MMURegion* reg, size_t off, uint8_t dat) {
+			{ read(reg, off) } -> std::same_as<uint8_t>;
+			{ write(reg, off, dat) } -> std::same_as<void>;
+		}
+	inline void SetupCpp(MMURegion& reg, size_t _base, size_t _size, std::string _description, ReadFunc _read, WriteFunc _write, Emulator& _emulator) {
+
+		struct Bind {
+			WriteFunc on_write;
+			ReadFunc on_read;
+		};
+
+		reg.Setup(
+			_base, _size, _description, new Bind{_write, _read}, [](MMURegion* reg, size_t off) -> uint8_t { return ((Bind*)reg->userdata)->on_read(reg, off); }, [](MMURegion* reg, size_t off, uint8_t dat) { ((Bind*)reg->userdata)->on_write(reg, off, dat); }, _emulator);
+	}
+
+	// ML62Q1000
+	class Timer16Bit : public Peripheral {
+	public:
+		class TimerUnit {
+		public:
+			TimerUnit(int i) : i(i) {}
+			int i;
+			MMURegion tm_data{}, tm_counter{}, tm_mode{}, tm_int_stat{}, tm_int_clr{};
+			uint16_t tm_data_d{}, tm_counter_d{}, tm_mode_d{}, tm_int_stat_d{}, tm_int_clr_d{};
+			
+			int tm_cnt = 0;
+
+			bool started = false;
+			const int int_map[8] = {27,28,35,36,43,44,51,52};
+			void Initialise(Emulator& emulator) {
+				tm_data.Setup(0xF300 + i * 2, 2, "16BitTimer/Data", &tm_data_d, MMURegion::DefaultRead<uint16_t>, MMURegion::DefaultWrite<uint16_t>, emulator);
+				tm_counter.Setup(0xF310 + i * 2, 2, "16BitTimer/Counter", &tm_counter_d, MMURegion::DefaultRead<uint16_t>, MMURegion::DefaultWrite<uint16_t>, emulator);
+				tm_mode.Setup(0xF320 + i * 2, 2, "16BitTimer/Mode", &tm_mode_d, MMURegion::DefaultRead<uint16_t>, MMURegion::DefaultWrite<uint16_t>, emulator);
+				tm_int_stat.Setup(0xF330 + i * 2, 2, "16BitTimer/InterruptStatus", &tm_int_stat_d, MMURegion::DefaultRead<uint16_t>, MMURegion::IgnoreWrite, emulator);
+				tm_int_clr.Setup(0xF340 + i * 2, 2, "16BitTimer/InterruptClear", &tm_int_clr_d, MMURegion::DefaultRead<uint16_t>, MMURegion::IgnoreWrite, emulator);
+			}
+			void Tick(Emulator& emulator) {
+				if (!started)
+					return;
+				auto divider = (tm_mode_d >> 3) & 0b111;
+				if (++tm_cnt > (1 << divider)) {
+					tm_cnt = 0;
+					tm_counter_d++;
+					// Triggered!
+					emulator.chipset.RaiseMaskable(int_map[i]);
+				}
+			}
+		};
+		TimerUnit Units[8]{0,1,2,3,4,5,6,7};
+		MMURegion TMStart{};
+		uint16_t a{};
+		using Peripheral::Peripheral;
+		void Initialise() override {
+			for (auto& unit : Units)
+				unit.Initialise(emulator);
+			TMStart.Setup(0xF350, 2, "Timer/StartReg",&a, MMURegion::DefaultRead<uint16_t>,MMURegion::DefaultWriteLog<uint16_t>,emulator);
+		}
+		int bug{};
+		void Tick() override {
+			for (auto& unit : Units)
+				unit.Tick(emulator);
+			
+			if (bug++ > 0x8000)
+			{
+				bug = 0;
+				emulator.chipset.data_LTBR++;
+			}
+		}
+	};
 	Peripheral* CreateTimer(Emulator& emu) {
+		if (emu.hardware_id == HW_TI) {
+			return new Timer16Bit(emu);
+		}
 		return new Timer(emu);
 	}
 } // namespace casioemu

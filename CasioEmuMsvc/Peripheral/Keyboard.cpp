@@ -38,6 +38,7 @@ namespace casioemu {
 			} type;
 			SDL_Rect rect;
 			uint8_t ko_bit, ki_bit;
+			uint8_t code;
 			bool pressed, stuck;
 		} buttons[64];
 
@@ -223,7 +224,12 @@ namespace casioemu {
 					button_ix = 63;
 				}
 				else {
-					button_ix = ((code >> 1) & 0x38) | (code & 0x07);
+					if (emulator.hardware_id == HW_TI) {
+						button_ix = btn.kiko;
+					}
+					else {
+						button_ix = ((code >> 1) & 0x38) | (code & 0x07);
+					}
 					if (button_ix >= 64)
 						PANIC("button index doesn't fit 6 bits\n");
 				}
@@ -269,8 +275,13 @@ namespace casioemu {
 				else
 					button.type = Button::BT_BUTTON;
 				button.rect = btn.rect;
-				button.ko_bit = 1 << ((code >> 4) & 0xF);
-				button.ki_bit = 1 << (code & 0xF);
+				if (emulator.hardware_id == HW_TI) {
+					button.code = btn.kiko;
+				}
+				else {
+					button.ko_bit = 1 << ((code >> 4) & 0xF);
+					button.ki_bit = 1 << (code & 0xF);
+				}
 			}
 		}
 	}
@@ -343,6 +354,10 @@ namespace casioemu {
 					SDL_SetRenderDrawColor(renderer, 0, 0, 0, 127);
 				SDL_RenderFillRect(renderer, &button.rect);
 			}
+			else {
+				SDL_SetRenderDrawColor(renderer, 0, 0, 0, 40);
+				SDL_RenderFillRect(renderer, &button.rect);
+			}
 		}
 	}
 
@@ -405,8 +420,14 @@ namespace casioemu {
 				printf("RESETB is BLOCKED.Press Ctrl+F11 to reset.\n");
 			}
 		}
-		if (button.pressed && button.type == Button::BT_BUTTON) {
-			printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
+		if (button.type == Button::BT_BUTTON) {
+			if (emulator.hardware_id == HW_TI) {
+				emulator.chipset.ti_key = button.code;
+				return;
+			}
+			else {
+				printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
+			}
 		}
 
 		if (button.type == Button::BT_BUTTON) {

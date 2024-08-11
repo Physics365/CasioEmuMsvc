@@ -130,6 +130,12 @@ namespace casioemu {
 
 		bool isMIBlocked;
 
+		// TI syscalls.
+		uint16_t ti_screen_buf = 0;
+		bool ti_render_screen = 0;
+		uint8_t ti_key = 0;
+		uint16_t ti_status_buf = 0;
+
 		/**
 		 * This exists because the Emulator that owns this Chipset is not ready
 		 * to supply a ROM path upon construction. It has to call `LoadROM` later

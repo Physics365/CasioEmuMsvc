@@ -49,7 +49,7 @@ class ModelEditor : public UIWindow {
 	casioemu::ModelInfo mi;
 	int v;
 	int k;
-	static constexpr const char* items[7] = {"##1", "##2", "##3", "ES(P)", "CWX", "CWII", "Fx5800p"};
+	static constexpr const char* items[9] = {"##1", "##2", "##3", "ES(P)", "CWX", "CWII", "Fx5800p", "TI", "SolarII"};
 	char path1[260];
 	char path2[260];
 	char path3[260];
@@ -255,7 +255,7 @@ public:
 					btninfo->keyname = buffer;
 				}
 				if (ImGui::InputText("KiKo", buffer2, 12)) {
-					btninfo->kiko = SDL_strtol(buffer2,0,16);
+					btninfo->kiko = SDL_strtol(buffer2, 0, 16);
 				}
 				ImGui::InputInt("X", &btninfo->rect.x);
 				ImGui::InputInt("Y", &btninfo->rect.y);
@@ -409,6 +409,12 @@ namespace casioemu {
 						break;
 					case HW_FX_5800P:
 						mod.type = "Fx5800p";
+						break;
+					case HW_TI:
+						mod.type = "TI";
+						break;
+					case HW_SOLARII:
+						mod.type = "SolarII";
 						break;
 					default:
 						mod.type = "Unknown";

@@ -62,6 +62,7 @@ namespace casioemu {
 				return le_read(rom[offset]);
 			else
 				return 0;
+		case HW_TI:
 		case HW_CLASSWIZ:
 			if (emulator.chipset.SegmentAccess && segment_index == 5)
 				segment_index = 0;
@@ -191,8 +192,8 @@ namespace casioemu {
 
 		MemoryByte& byte = segment[segment_offset];
 		MMURegion* region = byte.region;
-
 		if (!region) {
+			std::cout << std::hex << offset << std::oct << "\n";
 			return;
 		}
 		region->write(region, offset, data);

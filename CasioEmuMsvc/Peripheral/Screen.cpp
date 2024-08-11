@@ -9,12 +9,33 @@
 #include "Models.h"
 #include "Ui.hpp"
 #include <algorithm> // for std::generate
-#include <cstdlib>	 // for std::rand
-#include <ctime>	 // for std::time
+#include <array>
+#include <cstdlib> // for std::rand
+#include <ctime>   // for std::time
 #include <vector>
 
+constexpr uint8_t reverse_bits(uint8_t n) {
+	uint8_t reversed = 0;
+	for (int i = 0; i < 8; ++i) {
+		reversed |= ((n >> i) & 1) << (7 - i);
+	}
+	return reversed;
+}
+
+// constexpr 生成查找表
+constexpr std::array<uint8_t, 256> generate_lookup_table() {
+	std::array<uint8_t, 256> table = {};
+	for (int i = 0; i < 256; ++i) {
+		table[i] = reverse_bits(static_cast<uint8_t>(i));
+	}
+	return table;
+}
+
+// 定义查找表
+constexpr auto bit_lookup_table = generate_lookup_table();
+
 void fillRandomData(unsigned char* buf, size_t size) {
-	std::srand(static_cast<unsigned int>(std::time(nullptr))); // 使用当前时间作为随机种子
+	std::srand(static_cast<unsigned int>(SDL_GetPerformanceCounter())); // 使用当前时间作为随机种子
 	std::generate(buf, buf + size, []() {
 		return static_cast<unsigned char>(std::rand() % 256); // 生成0到255之间的随机数
 	});
@@ -59,7 +80,7 @@ namespace casioemu {
 		float position = 0;
 		SDL_Renderer* renderer{};
 		SDL_Texture* interface_texture{};
-		float screen_ink_alpha[128 * 192]{};
+		float screen_ink_alpha[66 * 192]{};
 		static const SpriteBitmap sprite_bitmap[];
 		std::vector<SpriteInfo> sprite_info;
 		ColourInfo ink_colour{};
@@ -89,6 +110,47 @@ namespace casioemu {
 		void Reset() override;
 
 		void tick() {
+			if constexpr (hardware_id == HW_TI) {
+				if (!n_ram_buffer)
+					return;
+				if (!emulator.chipset.ti_render_screen || !emulator.chipset.ti_screen_buf) {
+					SDL_Delay(1);
+					return;
+				}
+				emulator.chipset.ti_render_screen = false;
+				if (emulator.chipset.ti_screen_buf) {
+					auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_screen_buf;
+					for (int ix = 0; ix < 192; ++ix) {
+						for (int iy = 0; iy < 64; ++iy) {
+							uint32_t i = (ix << 6) | iy;
+							int bIndx = (i >> 3);
+							int subIndx = (i & 7);
+							int mask = (1 << subIndx);
+							bool on = (screen_buffer[bIndx] & mask) != 0;
+							screen_ink_alpha[(iy * 192 + 192) + ix] = on ? 255 : 20;
+						}
+					}
+				}
+				if (emulator.chipset.ti_status_buf) {
+					auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_status_buf;
+					int x = 0;
+					for (int ix = 1; ix != SPR_MAX; ++ix) {
+						auto off = sprite_bitmap[ix].offset;
+						screen_ink_alpha[x] = (screen_buffer[off] & sprite_bitmap[ix].mask) ? 255 : 20;
+						x++;
+					}
+					x = 0;
+					//for (int ix = 0; ix != 3; ++ix) {
+					//	for (uint8_t mask = 1; mask; mask <<= 1) {
+					//		screen_ink_alpha[(x++) + 192] = (screen_buffer[ix] & mask) ? 255 : 20;
+					//	}
+					//}
+					std::cout << "Render status!\n";
+				}
+
+				return;
+			}
+
 			if (screen_refresh_rate < screen_flashing_threshold && !enable_screen_fading)
 				0;
 			else {
@@ -136,7 +198,7 @@ namespace casioemu {
 				screen_buffer1 = this->screen_buffer1;
 			}
 			if (screen_buffer_select != 0) {
-				screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + casioemu::GetScreenBufferOffset(hardware_id, screen_buffer_select);
+				screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + casioemu::GetScreenBufferOffset(emulator.hardware_id, screen_buffer_select);
 				if (hardware_id == HW_CLASSWIZ_II) {
 					screen_buffer1 = screen_buffer + 0x600;
 				}
@@ -192,9 +254,9 @@ namespace casioemu {
 							ink_alpha = ink_alpha_off;
 							auto off = (sprite_bitmap[ix].offset + screen_offset * row_size) % ((N_ROW + 1) * row_size);
 							if (screen_buffer[off] & sprite_bitmap[ix].mask)
-								ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.333;
+								ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.2;
 							if (screen_buffer1[off] & sprite_bitmap[ix].mask)
-								ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.667;
+								ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.8;
 							if (screen_refresh_rate >= screen_flashing_threshold)
 								ink_alpha *= screen_scan_alpha[0];
 							screen_ink_alpha[x] = screen_ink_alpha[x] * ratio + ink_alpha * (1 - ratio);
@@ -256,9 +318,9 @@ namespace casioemu {
 								for (uint8_t mask = 0x80; mask; mask >>= 1, dest.x += sprite_info[SPR_PIXEL].src.w) {
 									ink_alpha = ink_alpha_off;
 									if (!clear_dots && screen_buffer[index] & mask)
-										ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.333;
+										ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.2;
 									if (!clear_dots && screen_buffer1[index] & mask)
-										ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.667;
+										ink_alpha += (ink_alpha_on - ink_alpha_off) * 0.8;
 									if (screen_refresh_rate >= screen_flashing_threshold)
 										ink_alpha *= screen_scan_alpha[iy];
 									if (clear)
@@ -331,6 +393,34 @@ namespace casioemu {
 			}
 			return;
 		}
+	};
+
+	template <>
+	const int Screen<HW_TI>::N_ROW = 64;
+	template <>
+	const int Screen<HW_TI>::ROW_SIZE = 32;
+	template <>
+	const int Screen<HW_TI>::OFFSET = 32;
+	template <>
+	const int Screen<HW_TI>::ROW_SIZE_DISP = 24;
+	template <>
+	const int Screen<HW_TI>::SPR_MAX = 2;
+	template <>
+	const SpriteBitmap Screen<HW_TI>::sprite_bitmap[] = {
+		{"rsd_pixel", 0, 0},
+		{"rsd_2nd", 0x02, 0x00},
+		//{"rsd_fix", 0x04, 0x00},
+		//{"rsd_hbo", 0x08, 0x00},
+		//{"rsd_sci", 0x02, 0x01},
+		//{"rsd_eng", 0x01, 0x01},
+		//{"rsd_deg", 0x04, 0x01},
+		//{"rsd_rad", 0x08, 0x01},
+		//{"rsd_bat", 0x02, 0x02},
+		//{"rsd_wait", 0x04, 0x02},
+		//{"rsd_left", 0x08, 0x02},
+		//{"rsd_up", 0x10, 0x02},
+		//{"rsd_down", 0x20, 0x02},
+		//{"rsd_right", 0x40, 0x02},
 	};
 
 	template <>
@@ -447,7 +537,7 @@ namespace casioemu {
 
 			screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
 			fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
-			if (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
 				region_power.Setup(
 					0xF03D, 1, "Screen/Power", this,
 					[](MMURegion* region, size_t offset) {
@@ -469,6 +559,9 @@ namespace casioemu {
 				fillRandomData(screen_buffer1, (N_ROW + 1) * ROW_SIZE);
 			}
 			inited = true;
+		}
+		if constexpr (hardware_id == HW_TI) {
+			return;
 		}
 		if (!(hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) || (!enabled_2 && (screen_power & 1))) {
 			if constexpr (hardware_id != HW_CLASSWIZ_II) {
@@ -577,7 +670,30 @@ namespace casioemu {
 						auto new_ = data & 0b1000;
 						if (old ^ new_) {
 							// TODO: 交换缓冲区有效视窗位数据
-
+							auto sb = screen->screen_buffer;
+							for (int iy = 0; iy != (N_ROW + 1); ++iy) {
+								for (int ix = 0; ix != ROW_SIZE_DISP; ++ix) {
+									sb[ix + iy * ROW_SIZE] = bit_lookup_table[sb[(ix) + iy * ROW_SIZE]];
+								}
+							}
+							for (int iy = 0; iy != (N_ROW + 1); ++iy) {
+								for (int ix = 0; ix != (ROW_SIZE_DISP / 2); ++ix) {
+									std::swap(sb[ix + iy * ROW_SIZE], sb[(ROW_SIZE_DISP - 1 - ix) + iy * ROW_SIZE]);
+								}
+							}
+							if constexpr (hardware_id == HW_CLASSWIZ_II) {
+								sb = screen->screen_buffer1;
+								for (int iy = 0; iy != (N_ROW + 1); ++iy) {
+									for (int ix = 0; ix != ROW_SIZE_DISP; ++ix) {
+										sb[ix + iy * ROW_SIZE] = bit_lookup_table[sb[(ix) + iy * ROW_SIZE]];
+									}
+								}
+								for (int iy = 0; iy != (N_ROW + 1); ++iy) {
+									for (int ix = 0; ix != (ROW_SIZE_DISP / 2); ++ix) {
+										std::swap(sb[ix + iy * ROW_SIZE], sb[(ROW_SIZE_DISP - 1 - ix) + iy * ROW_SIZE]);
+									}
+								}
+							}
 						}
 						screen->screen_mode = data & 127;
 					},
@@ -747,6 +863,10 @@ namespace casioemu {
 
 		case HW_CLASSWIZ_II:
 			return new Screen<HW_CLASSWIZ_II>(emulator);
+
+		case HW_TI:
+			return new Screen<HW_TI>(emulator);
+
 		default:
 			PANIC("Unknown hardware id\n");
 		}
