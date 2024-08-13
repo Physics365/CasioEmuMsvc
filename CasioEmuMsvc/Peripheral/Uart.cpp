@@ -1,4 +1,4 @@
-#include "Peripheral.hpp"
+ï»¿#include "Peripheral.hpp"
 #include <MMURegion.hpp>
 namespace casioemu {
 	class Uart : public Peripheral {
@@ -10,7 +10,7 @@ namespace casioemu {
 		uint8_t uart_status{};
 
 		using Peripheral::Peripheral;
-		 // TODO: »ğËÙÊµÏÖ
+		 // TODO: ç«é€Ÿå®ç°
 		void Initialise() {
 			region_UA0BUF.Setup(0xF290, 1, "Uart0/Buffer", this, MMURegion::IgnoreRead<0>, 0, emulator);
 			region_UA0CON.Setup(0xF291, 1, "Uart0/Control", &uart_control, MMURegion::DefaultRead<uint8_t, 0x1>, MMURegion::DefaultWrite<uint8_t, 0x1>, emulator);

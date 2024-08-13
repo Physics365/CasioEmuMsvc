@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Chipset/Chipset.hpp"
 #include <functional>
 

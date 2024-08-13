@@ -20,5 +20,3 @@ function ConvertAll-UTF8()
 ConvertAll-UTF8 -Pattern *.h
 ConvertAll-UTF8 -Pattern *.hpp
 ConvertAll-UTF8 -Pattern *.cpp
-ConvertAll-UTF8 -Pattern *.vcxproj
-ConvertAll-UTF8 -Pattern *.filters

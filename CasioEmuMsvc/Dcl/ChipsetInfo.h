@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 #include "Binary.h"
 #include <iostream>
 #include <string>
-// ±íÊ¾Ò»¸ö SFR
+// è¡¨ç¤ºä¸€ä¸ª SFR
 class SpecialFunctionRegister {
 public:
 	std::string peripheral;
@@ -35,7 +35,7 @@ public:
 		Binary::Read(is, mask);
 	}
 };
-// ±íÊ¾Ğ¾Æ¬×éµÄÏà¹ØĞÅÏ¢
+// è¡¨ç¤ºèŠ¯ç‰‡ç»„çš„ç›¸å…³ä¿¡æ¯
 class ChipsetInfo {
 public:
 	std::string name;

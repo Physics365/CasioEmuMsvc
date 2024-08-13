@@ -1,4 +1,4 @@
-#include "Hooks.h"
+﻿#include "Hooks.h"
 
 std::function<void(casioemu::CPU&, InstructionEventArgs&)> on_instruction;
 

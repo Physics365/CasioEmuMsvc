@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <mutex>
 template <class T>
 class ConcurrentObject {
