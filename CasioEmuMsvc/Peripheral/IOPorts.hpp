@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "../Config.hpp"
+#include "Config.hpp"
 
 #include "Peripheral.hpp"
-#include "../Chipset/MMURegion.hpp"
+#include "Chipset/MMURegion.hpp"
 
 namespace casioemu
 {

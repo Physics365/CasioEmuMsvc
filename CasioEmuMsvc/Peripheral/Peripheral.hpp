@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../Config.hpp"
+#include "Config.hpp"
 
 #include <SDL.h>
 #include <any>

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../Emulator.hpp"
+#include "Emulator.hpp"
 #include "hex.hpp"
 #include "Ui.hpp"
 #include <cstdint>

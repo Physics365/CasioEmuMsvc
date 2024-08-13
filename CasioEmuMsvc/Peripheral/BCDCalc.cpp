@@ -1,11 +1,11 @@
 ﻿#include "BCDCalc.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Chipset/MMURegion.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
-#include "../ModelInfo.h"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Chipset/MMURegion.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
+#include "ModelInfo.h"
 
 namespace casioemu {
 	class BCDCalc : public Peripheral {

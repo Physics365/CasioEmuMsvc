@@ -1,6 +1,6 @@
 ﻿#include "InterruptSource.hpp"
 
-#include "../Emulator.hpp"
+#include "Emulator.hpp"
 #include "Chipset.hpp"
 
 namespace casioemu

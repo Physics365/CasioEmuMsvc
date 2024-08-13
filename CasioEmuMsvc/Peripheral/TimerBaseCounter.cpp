@@ -1,8 +1,8 @@
 ﻿#include "TimerBaseCounter.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
 
 namespace casioemu {
 	class TimerBaseCounter : public Peripheral {

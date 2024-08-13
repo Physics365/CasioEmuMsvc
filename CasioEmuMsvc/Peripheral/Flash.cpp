@@ -1,6 +1,6 @@
-﻿#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMURegion.hpp"
-#include "../Emulator.hpp"
+﻿#include "Chipset/Chipset.hpp"
+#include "Chipset/MMURegion.hpp"
+#include "Emulator.hpp"
 #include "Peripheral.hpp"
 #include <cstdint>
 namespace casioemu {

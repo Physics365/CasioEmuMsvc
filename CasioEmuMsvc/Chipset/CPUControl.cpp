@@ -1,8 +1,8 @@
 ﻿#include "CPU.hpp"
 
-#include "../Emulator.hpp"
-#include "../Gui/Hooks.h"
-#include "../Gui/ui.hpp"
+#include "Emulator.hpp"
+#include "Gui/Hooks.h"
+#include "Gui/ui.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
 namespace casioemu {

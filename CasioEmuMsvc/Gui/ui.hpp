@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
 #include "imgui/imgui.h"
 int test_gui(bool* guiCreated);
 void gui_cleanup();

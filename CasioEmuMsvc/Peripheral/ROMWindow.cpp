@@ -1,10 +1,10 @@
 ﻿#include "ROMWindow.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
-#include "../ModelInfo.h"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
+#include "ModelInfo.h"
 
 #include <string>
 

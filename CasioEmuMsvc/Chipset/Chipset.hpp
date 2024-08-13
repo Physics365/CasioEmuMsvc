@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "../Config.hpp"
+#include "Config.hpp"
 
 #include "InterruptSource.hpp"
 #include "MMURegion.hpp"
 
-#include "../Peripheral/ExternalInterrupts.hpp"
-#include "../Peripheral/IOPorts.hpp"
+#include "Peripheral/ExternalInterrupts.hpp"
+#include "Peripheral/IOPorts.hpp"
 
 #include <SDL.h>
 #include <forward_list>
@@ -132,7 +132,6 @@ namespace casioemu {
 
 		// TI syscalls.
 		uint16_t ti_screen_buf = 0;
-		bool ti_render_screen = 0;
 		uint8_t ti_key = 0;
 		uint16_t ti_status_buf = 0;
 

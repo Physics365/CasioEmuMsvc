@@ -1,6 +1,6 @@
 ﻿#include "CPU.hpp"
 
-#include "../Emulator.hpp"
+#include "Emulator.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
 

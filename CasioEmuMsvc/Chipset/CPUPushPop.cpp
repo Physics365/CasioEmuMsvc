@@ -1,10 +1,10 @@
 ﻿#include "CPU.hpp"
 
-#include "../Emulator.hpp"
+#include "Emulator.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
 
-#include "../Gui/Hooks.h"
+#include "Gui/Hooks.h"
 
 namespace casioemu {
 	// * PUSH/POP Instructions

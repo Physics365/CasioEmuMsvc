@@ -1,11 +1,11 @@
 ﻿#include "IOPorts.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Chipset/CPU.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
-#include "../Gui/Ui.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Chipset/CPU.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
+#include "Gui/Ui.hpp"
 
 namespace casioemu {
 	void IOPorts::Initialise() {

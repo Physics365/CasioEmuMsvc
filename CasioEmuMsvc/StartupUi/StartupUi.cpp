@@ -1,12 +1,12 @@
 ﻿#include "StartupUi.h"
-#include "../Binary.h"
-#include "../Config.hpp"
-#include "../Gui/Ui.hpp"
-#include "../Gui/imgui/imgui.h"
-#include "../Gui/imgui/imgui_impl_sdl2.h"
-#include "../Gui/imgui/imgui_impl_sdlrenderer2.h"
-#include "../ModelInfo.h"
-#include "../Romu.h"
+#include "Binary.h"
+#include "Config.hpp"
+#include "Gui/Ui.hpp"
+#include "Gui/imgui/imgui.h"
+#include "Gui/imgui/imgui_impl_sdl2.h"
+#include "Gui/imgui/imgui_impl_sdlrenderer2.h"
+#include "ModelInfo.h"
+#include "Romu.h"
 #include "ModelInfo.h"
 #include "ui.hpp"
 #include <SDL.h>
@@ -465,8 +465,6 @@ namespace casioemu {
 							mod.show_sum = false;
 						}
 					}
-					// SDL_Surface* loaded_surface = IMG_Load((dir.path() / mi.interface_path).string().c_str());
-					// mod.thumbnail_t = scale_texture_region_uniform(renderer2, loaded_surface, &mi.sprites["rsd_interface"].src, 100, 200);
 					models.push_back(mod);
 				}
 			}
@@ -533,7 +531,7 @@ namespace casioemu {
 					,
 					search_txt, 200);
 				ImGui::SameLine();
-				const char* items[] = {"##", "ES", "ESP", "ESP2nd", "CWX", "CWII", "Fx5800p"};
+				const char* items[] = {"##", "ES", "ESP", "ESP2nd", "CWX", "CWII", "Fx5800p", "TI", "SolarII"};
 				ImGui::SetNextItemWidth(80);
 				if (ImGui::BeginCombo("##cb", current_filter)) {
 					for (int n = 0; n < IM_ARRAYSIZE(items); n++) {

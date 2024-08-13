@@ -1,5 +1,5 @@
 #pragma once
-#include "../Chipset/Chipset.hpp"
+#include "Chipset/Chipset.hpp"
 #include <functional>
 
 // this is the new cpp style hook library

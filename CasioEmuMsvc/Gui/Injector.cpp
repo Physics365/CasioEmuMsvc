@@ -1,16 +1,16 @@
 ﻿#include "Injector.hpp"
-#include "../Chipset/Chipset.hpp"
-#include "../Peripheral/BatteryBackedRAM.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Peripheral/BatteryBackedRAM.hpp"
 #include "hex.hpp"
 #include "imgui/imgui.h"
 
-#include "../Models.h"
+#include "Models.h"
 
 #include <cstdlib>
 #include <cstring>
 #include <string>
 
-#include "../Config.hpp"
+#include "Config.hpp"
 #include "ui.hpp"
 #include <filesystem>
 #include <fstream>

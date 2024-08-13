@@ -1,9 +1,9 @@
 ﻿#include "PowerSupply.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
 
 #include <cmath>
 

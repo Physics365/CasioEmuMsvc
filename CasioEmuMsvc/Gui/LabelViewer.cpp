@@ -1,5 +1,5 @@
 ﻿#include "LabelViewer.h"
-#include "../Models.h"
+#include "Models.h"
 #include "Ui.hpp"
 #include "imgui/imgui.h"
 #include "stringhelper.h"

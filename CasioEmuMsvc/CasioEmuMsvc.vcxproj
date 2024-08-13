@@ -141,7 +141,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -179,7 +179,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -204,7 +204,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <CreateHotpatchableImage>false</CreateHotpatchableImage>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -224,7 +224,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -242,7 +242,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -263,7 +263,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions> /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -289,7 +289,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <CreateHotpatchableImage>false</CreateHotpatchableImage>
-      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;StartupUi;System;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -335,7 +335,7 @@
     <ClCompile Include="Gui\HwController.cpp" />
     <ClCompile Include="Gui\Ui.cpp" />
     <ClCompile Include="Gui\WatchWindow.cpp" />
-    <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="Ext\Logger.cpp" />
     <ClCompile Include="Gui\VariableWindow.cpp" />
     <ClCompile Include="Peripheral\5800Flash.cpp" />
     <ClCompile Include="Peripheral\Audio.cpp" />
@@ -353,11 +353,13 @@
     <ClCompile Include="Peripheral\Timer.cpp" />
     <ClCompile Include="Peripheral\TimerBaseCounter.cpp" />
     <ClCompile Include="Peripheral\WatchdogTimer.cpp" />
-    <ClCompile Include="Romu.cpp" />
-    <ClCompile Include="U8Disas.cpp" />
+    <ClCompile Include="Ext\Romu.cpp" />
+    <ClCompile Include="Ext\U8Disas.cpp" />
+    <ClCompile Include="Peripheral\VoltageLevelSupervisor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Binary.h" />
+    <ClInclude Include="Dcl\ChipsetInfo.h" />
     <ClInclude Include="Chipset\Chipset.hpp" />
     <ClInclude Include="Chipset\CPU.hpp" />
     <ClInclude Include="Chipset\InterruptSource.hpp" />
@@ -390,12 +392,13 @@
     <ClInclude Include="Gui\LabelViewer.h" />
     <ClInclude Include="Gui\MemBreakPoint.hpp" />
     <ClInclude Include="Gui\HwController.h" />
+    <ClInclude Include="Ext\Memory.h" />
     <ClInclude Include="Peripheral\Uart.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stringhelper.h" />
     <ClInclude Include="Gui\Ui.hpp" />
     <ClInclude Include="Gui\WatchWindow.hpp" />
-    <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="Ext\Logger.hpp" />
     <ClInclude Include="ModelInfo.h" />
     <ClInclude Include="Models.h" />
     <ClInclude Include="Gui\VariableWindow.h" />
@@ -417,9 +420,10 @@
     <ClInclude Include="Peripheral\Timer.hpp" />
     <ClInclude Include="Peripheral\TimerBaseCounter.hpp" />
     <ClInclude Include="Peripheral\WatchdogTimer.hpp" />
-    <ClInclude Include="Romu.h" />
+    <ClInclude Include="Ext\Romu.h" />
     <ClInclude Include="StartupUi\StartupUi.h" />
-    <ClInclude Include="U8Disas.h" />
+    <ClInclude Include="Ext\U8Disas.h" />
+    <ClInclude Include="Peripheral\VoltageLevelSupervisor.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

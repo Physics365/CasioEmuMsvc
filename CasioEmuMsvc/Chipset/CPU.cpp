@@ -1,9 +1,9 @@
 ﻿#include "CPU.hpp"
 
-#include "../Emulator.hpp"
-#include "../Gui/CodeViewer.hpp"
-#include "../Gui/Hooks.h"
-#include "../Logger.hpp"
+#include "Emulator.hpp"
+#include "Gui/CodeViewer.hpp"
+#include "Gui/Hooks.h"
+#include "Logger.hpp"
 #include "Chipset.hpp"
 #include "MMU.hpp"
 

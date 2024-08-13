@@ -1,7 +1,7 @@
 ﻿#include "5800Flash.h"
-#include "../Chipset/MMU.hpp"
-#include "../Chipset/Chipset.hpp"
-#include "../Emulator.hpp"
+#include "Chipset/MMU.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Emulator.hpp"
 namespace casioemu {
 	class Flash2 : public casioemu::Peripheral {
 	public:

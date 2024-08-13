@@ -1,6 +1,6 @@
 ﻿#include "Editors.h"
-#include "../Chipset/Chipset.hpp"
-#include "../Models.h"
+#include "Chipset/Chipset.hpp"
+#include "Models.h"
 #include "CPU.hpp"
 #include "Ui.hpp"
 #include "hex.hpp"

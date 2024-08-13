@@ -1,31 +1,31 @@
 ﻿#include "Chipset.hpp"
 
-#include "../Emulator.hpp"
-#include "../Gui/Hooks.h"
-#include "../Logger.hpp"
-#include "../ModelInfo.h"
-#include "../Models.h"
-#include "../Peripheral/5800Flash.h"
-#include "../Peripheral/Audio.h"
-#include "../Peripheral/BCDCalc.hpp"
-#include "../Peripheral/BatteryBackedRAM.hpp"
-#include "../Peripheral/ExternalInterrupts.hpp"
-#include "../Peripheral/Flash.hpp"
-#include "../Peripheral/IOPorts.hpp"
-#include "../Peripheral/Keyboard.hpp"
-#include "../Peripheral/Miscellaneous.hpp"
-#include "../Peripheral/PowerSupply.hpp"
-#include "../Peripheral/ROMWindow.hpp"
-#include "../Peripheral/RealTimeClock.hpp"
-#include "../Peripheral/Screen.hpp"
-#include "../Peripheral/StandbyControl.hpp"
-#include "../Peripheral/Timer.hpp"
-#include "../Peripheral/TimerBaseCounter.hpp"
-#include "../Peripheral/WatchdogTimer.hpp"
-#include "../Romu.h"
+#include "Audio.h"
+#include "BCDCalc.hpp"
+#include "BatteryBackedRAM.hpp"
+#include "ExternalInterrupts.hpp"
+#include "Flash.hpp"
+#include "IOPorts.hpp"
+#include "Keyboard.hpp"
+#include "Miscellaneous.hpp"
+#include "PowerSupply.hpp"
+#include "ROMWindow.hpp"
+#include "RealTimeClock.hpp"
+#include "Screen.hpp"
+#include "StandbyControl.hpp"
+#include "Timer.hpp"
+#include "TimerBaseCounter.hpp"
+#include "WatchdogTimer.hpp"
+#include "Romu.h"
+#include "5800Flash.h"
 #include "CPU.hpp"
+#include "Dcl/ChipsetInfo.h"
+#include "Emulator.hpp"
+#include "Hooks.h"
+#include "Logger.hpp"
+#include "ModelInfo.h"
+#include "Models.h"
 #include "Uart.h"
-// #include "HighResClock.h"
 #include "InterruptSource.hpp"
 #include "MMU.hpp"
 #include <algorithm>
@@ -139,29 +139,7 @@ namespace casioemu {
 		ResetClockGenerator();
 		if (emulator.hardware_id == HW_TI) {
 			region_LTBR.Setup(
-				0xF060, 1, "TimerBaseCounter/LTBR", this, [](MMURegion* region, size_t) {
-			Chipset* chipset = (Chipset*)region->userdata;
-			return chipset->data_LTBR; }, [](MMURegion* region, size_t, uint8_t data) {
-			Chipset* chipset = (Chipset*)region->userdata;
-			chipset->data_LTBR = 0;
-			chipset->LTBCReset = true;
-			chipset->LSCLKTick = true;
-			chipset->LSCLKTickCounter = 0;
-			chipset->LSCLKTimeCounter = 0;
-			chipset->LSCLKFreqAddition = 0; }, emulator);
-			region_LTBADJ.Setup(
-				0xF064, 2, "TimerBaseCounter/LTBADJ", this, [](MMURegion* region, size_t offset) {
-			Chipset* chipset = (Chipset*)region->userdata;
-			offset -= region->base;
-			return (uint8_t)((chipset->data_LTBADJ & 0x7FF) >> offset * 8); }, [](MMURegion* region, size_t offset, uint8_t data) {
-			Chipset* chipset = (Chipset*)region->userdata;
-			offset -= region->base;
-			chipset->data_LTBADJ = (chipset->data_LTBADJ & (~(0xFF << offset * 8))) | (data << offset * 8);
-			chipset->data_LTBADJ &= 0x7FF;
-			if(chipset->data_LTBADJ != 0)
-				chipset->LSCLKThresh = (chipset->LSCLKFreq * (1 + 2097152 / (short)chipset->data_LTBADJ)) / chipset->emulator.GetCyclesPerSecond();
-			else
-				chipset->LSCLKThresh = 0; }, emulator);
+				0xF060, 1, "TimerBaseCounter/LTBR", this, [](MMURegion* region, size_t) { return (uint8_t)1; }, [](MMURegion* region, size_t, uint8_t data) {}, emulator);
 		}
 		else {
 			region_FCON.Setup(
@@ -512,9 +490,7 @@ namespace casioemu {
 	void Chipset::RaiseSoftware(size_t index) {
 		if (emulator.hardware_id == HW_TI) {
 			if (index == 0x1) {
-				std::cout << "SWI #1\n";
 				// Screen changed.
-				ti_render_screen = true;
 				ti_screen_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));
 				emulator.chipset.cpu.reg_r[1] = 0;
 				emulator.chipset.cpu.reg_r[0] = 0;
@@ -522,9 +498,9 @@ namespace casioemu {
 			else if (index == 0x2) {
 				if (ti_key != 0)
 					std::cout << "Write Key " << std::hex << (int)ti_key << std::oct << "\n";
-				int i = 300;
-				while ((i > 0) && ti_key ==0) {
-					i-=24;
+				int i = 500;
+				while ((i > 0) && ti_key == 0) {
+					i -= 24;
 					SDL_Delay(24);
 				}
 				emulator.chipset.cpu.reg_r[1] = 0;
@@ -539,13 +515,11 @@ namespace casioemu {
 			}
 			else if (index == 0x4) {
 				ti_status_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));
-				ti_render_screen = true;
 				emulator.chipset.cpu.reg_r[1] = 0;
 				emulator.chipset.cpu.reg_r[0] = 0;
 				// callTopIconsChanged
 			}
 			else if (index == 0x5) {
-				std::cout << "SWI #5\n";
 				// Notify the key event processor that a key can repeat
 			}
 			return;

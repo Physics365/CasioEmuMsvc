@@ -1,6 +1,6 @@
 ﻿#include "ui.hpp"
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
 #include "CallAnalysis.h"
 #include "CasioData.h"
 #include "CodeViewer.hpp"
@@ -130,6 +130,7 @@ int test_gui(bool* guiCreated) {
 		*guiCreated = true;
 	while (!m_emu || !me_mmu)
 		std::this_thread::sleep_for(std::chrono::microseconds(1));
+	std::this_thread::sleep_for(std::chrono::microseconds(100));
 	for (auto item : std::initializer_list<UIWindow*>{
 			 new VariableWindow(),
 			 new HwController(),

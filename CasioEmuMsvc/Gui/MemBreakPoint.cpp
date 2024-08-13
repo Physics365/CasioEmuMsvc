@@ -1,8 +1,8 @@
 ﻿#include "MemBreakPoint.hpp"
-#include "../Chipset/CPU.hpp"
-#include "../Chipset/Chipset.hpp"
-#include "../Emulator.hpp"
-#include "../Gui/Hooks.h"
+#include "Chipset/CPU.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Emulator.hpp"
+#include "Gui/Hooks.h"
 #include "imgui/imgui.h"
 #include "ui.hpp"
 #include <cstdint>

@@ -1,10 +1,10 @@
 ﻿#include "Keyboard.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
-#include "../ModelInfo.h"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
+#include "ModelInfo.h"
 
 #include <SDL.h>
 #include <chrono>
@@ -308,7 +308,7 @@ namespace casioemu {
 
 	void Keyboard::Tick() {
 		if (factory_test) {
-			keyboard_in = (uint8_t)~0b00011000;
+			keyboard_in = (uint8_t)~0b00011000; // KI 3 KI 4 enabled xD
 			return;
 		}
 
@@ -422,6 +422,10 @@ namespace casioemu {
 		}
 		if (button.type == Button::BT_BUTTON) {
 			if (emulator.hardware_id == HW_TI) {
+				printf("Keycode: 0x%x\n", button.code);
+				if (!emulator.chipset.GetRunningState() && button.code == 0x29) {
+					emulator.chipset.Reset();
+				}
 				emulator.chipset.ti_key = button.code;
 				return;
 			}

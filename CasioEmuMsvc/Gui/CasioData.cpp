@@ -1,5 +1,5 @@
 ﻿#include "CasioData.h"
-#include "../Models.h"
+#include "Models.h"
 #include "CwiiHelp.h"
 #include "Ui.hpp"
 #include "imgui/imgui.h"

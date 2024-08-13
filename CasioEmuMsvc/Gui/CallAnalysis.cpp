@@ -1,5 +1,5 @@
 ﻿#include "CallAnalysis.h"
-#include "../Chipset/CPU.hpp"
+#include "Chipset/CPU.hpp"
 #include "Hooks.h"
 #include "Ui.hpp"
 #include "imgui/imgui.h"

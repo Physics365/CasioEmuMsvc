@@ -1,7 +1,7 @@
 ﻿#include "WatchWindow.hpp"
-#include "../Chipset//Chipset.hpp"
-#include "../Chipset/CPU.hpp"
-#include "../Peripheral/BatteryBackedRAM.hpp"
+#include "Chipset//Chipset.hpp"
+#include "Chipset/CPU.hpp"
+#include "Peripheral/BatteryBackedRAM.hpp"
 #include "CodeViewer.hpp"
 #include "Ui.hpp"
 #include "imgui/imgui.h"
@@ -11,8 +11,8 @@
 #include <cstdlib>
 #include <stdlib.h>
 
-#include "../Config.hpp"
-#include "../Models.h"
+#include "Config.hpp"
+#include "Models.h"
 
 
 void WatchWindow::PrepareRX() {

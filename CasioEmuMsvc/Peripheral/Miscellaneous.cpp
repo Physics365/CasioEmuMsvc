@@ -1,9 +1,9 @@
 ﻿#include "Miscellaneous.hpp"
 
-#include "../Chipset/CPU.hpp"
-#include "../Chipset/Chipset.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
+#include "Chipset/CPU.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
 
 #include <iomanip>
 #include <sstream>

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../Emulator.hpp"
+#include "Emulator.hpp"
 #include "Ui.hpp"
 class Injector : public UIWindow {
 private:

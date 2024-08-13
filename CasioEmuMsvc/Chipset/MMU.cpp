@@ -1,9 +1,9 @@
 ﻿#include "MMU.hpp"
 
-#include "../Emulator.hpp"
-#include "../Gui/Hooks.h"
-#include "../Gui/Ui.hpp"
-#include "../Logger.hpp"
+#include "Emulator.hpp"
+#include "Gui/Hooks.h"
+#include "Gui/Ui.hpp"
+#include "Logger.hpp"
 #include "CPU.hpp"
 #include "Chipset.hpp"
 #include <cstring>
@@ -193,7 +193,7 @@ namespace casioemu {
 		MemoryByte& byte = segment[segment_offset];
 		MMURegion* region = byte.region;
 		if (!region) {
-			std::cout << std::hex << offset << std::oct << "\n";
+			std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
 			return;
 		}
 		region->write(region, offset, data);

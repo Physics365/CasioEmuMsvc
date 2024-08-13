@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include <string>
 #include <unordered_map>
-#include "../Models.h"
-#include "../Gui/Ui.hpp"
+#include "Models.h"
+#include "Gui/Ui.hpp"
 namespace cwii {
 	inline std::string trim(const std::string& str) {
 		size_t first = str.find_first_not_of('0');

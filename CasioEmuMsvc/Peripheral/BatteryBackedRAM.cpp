@@ -1,12 +1,12 @@
 ﻿#include "BatteryBackedRAM.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Gui/ui.hpp"
-#include "../Logger.hpp"
-#include "../ModelInfo.h"
-#include "../Models.h"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Gui/ui.hpp"
+#include "Logger.hpp"
+#include "ModelInfo.h"
+#include "Models.h"
 #include <cstring>
 #include <fstream>
 

@@ -1,9 +1,9 @@
 ﻿#include "Timer.hpp"
 
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Logger.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Logger.hpp"
 
 #include <cmath>
 
@@ -206,7 +206,7 @@ namespace casioemu {
 		void Initialise() override {
 			for (auto& unit : Units)
 				unit.Initialise(emulator);
-			TMStart.Setup(0xF350, 2, "Timer/StartReg",&a, MMURegion::DefaultRead<uint16_t>,MMURegion::DefaultWriteLog<uint16_t>,emulator);
+			TMStart.Setup(0xF350, 2, "Timer/StartReg",&a, MMURegion::DefaultRead<uint16_t>,MMURegion::DefaultWrite<uint16_t>,emulator);
 		}
 		int bug{};
 		void Tick() override {

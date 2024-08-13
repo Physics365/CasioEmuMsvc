@@ -1,7 +1,7 @@
 ﻿#include "Audio.h"
-#include "../Chipset/Chipset.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
 namespace casioemu {
 	class AudioDriver : public Peripheral {
 		uint8_t control{}, tempo{};

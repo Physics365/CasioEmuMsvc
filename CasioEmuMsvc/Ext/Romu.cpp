@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Romu.h"
+#include "Memory.h"
 #include "ModelInfo.h"
 #include <fstream>
 #include <iomanip>
@@ -22,7 +23,7 @@ inline void calc2(word& sum, byte* bt, int len) {
 	}
 }
 
-RomInfo rom_info(std::vector<byte> rom,bool checksum) {
+RomInfo rom_info(std::vector<byte> rom, bool checksum) {
 	auto dat = rom.data();
 	RomInfo ri{};
 	auto spinit = *(word*)dat;
@@ -60,28 +61,38 @@ RomInfo rom_info(std::vector<byte> rom,bool checksum) {
 			}
 			memcpy(ri.ver, &dat[0x5ffee], 8);
 			memcpy(ri.cid, &dat[0x5fff8], 8);
+			if (ri.ver[0] != 'E') {
+				auto ver = (byte*)FindSignature(dat, 0x5e000, "?? 00 e9 90 ca ff ?? 00 e9 90 cb ff ?? 00 e9 90 cc ff ?? 00 e9 90 cd ff ?? 00 e9 90 ce ff ?? 00 e9 90 cf ff");
+				auto ver2 = (byte*)FindSignature(dat, 0x5e000, "56 00 e9 90 d1 ff 2e 00 e9 90 d2 ff");
+				auto ofst = ver2[14] | (ver2[15] << 8);
+				for (size_t i = 0; i < 6; i++) {
+					ri.ver[i] = ver[i * 6];
+				}
+				ri.ver[6] = dat[ofst];
+				ri.ver[7] = dat[ofst + 1];
+			}
 			ri.desired_sum = le_read(dat[0x5fff6]);
 			sum_type = CWII;
 		}
 	}
 	else if (spinit == 0x8dfe) {
 		ri.type = RomInfo::ES;
+		auto str = (byte*)FindSignature(dat, 0x8000, "52 4f 4d 20 30");
+		memcpy(ri.ver, str, 8);
+		ri.ok = true;
 		return ri;
 	}
 	else if (spinit == 0x8e00) {
 		ri.type = RomInfo::Fx5800p;
 		return ri;
 	}
-	else if (spinit == 0x8dec || spinit == 0x8df2 || spinit == 0x8dea) {
+	else { // if (spinit == 0x8dec || spinit == 0x8de8 || spinit == 0x8df2 || spinit == 0x8dea)
 		if (rom.size() < 0x20000) {
 			return ri;
 		}
 		memcpy(ri.ver, &dat[0x1fff4], 8);
 		ri.desired_sum = le_read(dat[0x1fffc]);
 		sum_type = ESP1;
-	}
-	if (ri.ver[1] != 'Y') {
-		return ri;
 	}
 	if (sum_type == ESP1) {
 		if (ri.ver[0] == 'L' || ri.ver[0] == 'G') {

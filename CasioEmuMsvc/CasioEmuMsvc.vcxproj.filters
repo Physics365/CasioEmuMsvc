@@ -21,7 +21,7 @@
     <ClCompile Include="Emulator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
+    <ClCompile Include="Ext\Logger.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Chipset\Chipset.cpp">
@@ -135,7 +135,7 @@
     <ClCompile Include="Peripheral\WatchdogTimer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="U8Disas.cpp">
+    <ClCompile Include="Ext\U8Disas.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Peripheral\5800Flash.cpp">
@@ -144,7 +144,7 @@
     <ClCompile Include="Peripheral\Audio.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Romu.cpp">
+    <ClCompile Include="Ext\Romu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Gui\CasioData.cpp">
@@ -174,6 +174,9 @@
     <ClCompile Include="Peripheral\Uart.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Peripheral\VoltageLevelSupervisor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">
@@ -182,7 +185,7 @@
     <ClInclude Include="Emulator.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.hpp">
+    <ClInclude Include="Ext\Logger.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Chipset\Chipset.hpp">
@@ -323,7 +326,7 @@
     <ClInclude Include="ModelInfo.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="U8Disas.h">
+    <ClInclude Include="Ext\U8Disas.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Peripheral\5800Flash.h">
@@ -332,7 +335,7 @@
     <ClInclude Include="Peripheral\Audio.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Romu.h">
+    <ClInclude Include="Ext\Romu.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Gui\CasioData.h">
@@ -363,6 +366,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Peripheral\Uart.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Dcl\ChipsetInfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Peripheral\VoltageLevelSupervisor.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ext\Memory.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

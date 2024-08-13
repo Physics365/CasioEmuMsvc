@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "../Config.hpp"
+#include "Config.hpp"
 
-#include "../Logger.hpp"
+#include "Logger.hpp"
 #include <cstdint>
 #include <string>
 

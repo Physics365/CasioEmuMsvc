@@ -1,9 +1,9 @@
 ﻿#include "ExternalInterrupts.hpp"
 
-#include "../Logger.hpp"
-#include "../Chipset/MMU.hpp"
-#include "../Emulator.hpp"
-#include "../Chipset/Chipset.hpp"
+#include "Logger.hpp"
+#include "Chipset/MMU.hpp"
+#include "Emulator.hpp"
+#include "Chipset/Chipset.hpp"
 
 namespace casioemu
 {
