@@ -209,10 +209,14 @@ namespace casioemu {
 		auto stack = this->stack.get();
 		reg_lr = reg_pc;
 		reg_lcsr = reg_csr;
-		if (!stack->empty() && !stack->back().lr_pushed) {}
+		// if (!stack->empty() && !stack->back().lr_pushed) {}
 		OP_B();
 		StackFrame sf{};
 		sf.new_pc = reg_csr << 16 | reg_pc;
+		if (!stack->empty() && !stack->back().lr_pushed) {
+			std::cout << "[CPU][Warn] Control flow get override!(likely stack corruption or a bootloader)\n";
+			stack->clear();
+		}
 		stack->push_back(sf);
 		if (on_call_function)
 			on_call_function(*this, {sf.new_pc, (uint32_t)(reg_lcsr << 16 | reg_lr)});
