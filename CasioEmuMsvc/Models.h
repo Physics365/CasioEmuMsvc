@@ -533,6 +533,11 @@ namespace casioemu {
 			};
 #endif
 		}
+		case HardwareId::HW_TI: {
+			return {
+				{0xC33C, 300, SColor, "Input Area"},
+			};
+		}
 		default:
 			return {};
 		}
@@ -565,6 +570,8 @@ namespace casioemu {
 															   : 0xBA68;
 	}
 	inline constexpr size_t GetCursorOffset(HardwareId hid) {
+		if (hid == HW_TI)
+			return 0xf000;
 		return hid == HW_ES_PLUS ? 0x8110 : hid == HW_CLASSWIZ ? 0xD155
 															   : 0x91E5;
 	}
@@ -593,6 +600,9 @@ namespace casioemu {
 	inline size_t GetReImOffset(HardwareId hid) {
 		if (hid == HW_FX_5800P) {
 			return {};
+		}
+		if (hid == HW_TI) {
+			return 0x8;
 		}
 		if (hid == HW_ES_PLUS) {
 			return static_cast<size_t>(0x8408) - 0x8226;
@@ -658,7 +668,18 @@ namespace casioemu {
 				{0x96EA, "PreAns"}};
 		}
 		else if (hid == HW_TI) {
-			return {}; // Invalid
+			size_t i = 0;
+			return {
+				{0xE490 + 16 * i++, "x"},
+				{0xE490 + 16 * i++, "y"},
+				{0xE490 + 16 * i++, "z"},
+				{0xE490 + 16 * i++, "t"},
+				{0xE490 + 16 * i++, "a"},
+				{0xE490 + 16 * i++, "b"},
+				{0xE490 + 16 * i++, "c"},
+				{0xE490 + 16 * i++, "d"},
+				{0xE490 + 16 * i++, "ans"},
+			}; // Invalid
 		}
 		else {
 			PANIC("HardwareId");
