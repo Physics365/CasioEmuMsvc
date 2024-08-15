@@ -1,33 +1,33 @@
 ﻿#include "Chipset.hpp"
 
+#include "5800Flash.h"
 #include "Audio.h"
 #include "BCDCalc.hpp"
 #include "BatteryBackedRAM.hpp"
+#include "CPU.hpp"
+#include "Dcl/ChipsetInfo.h"
+#include "Emulator.hpp"
 #include "ExternalInterrupts.hpp"
 #include "Flash.hpp"
+#include "Hooks.h"
 #include "IOPorts.hpp"
+#include "InterruptSource.hpp"
 #include "Keyboard.hpp"
+#include "Logger.hpp"
+#include "MMU.hpp"
 #include "Miscellaneous.hpp"
+#include "ModelInfo.h"
+#include "Models.h"
 #include "PowerSupply.hpp"
 #include "ROMWindow.hpp"
 #include "RealTimeClock.hpp"
+#include "Romu.h"
 #include "Screen.hpp"
 #include "StandbyControl.hpp"
 #include "Timer.hpp"
 #include "TimerBaseCounter.hpp"
-#include "WatchdogTimer.hpp"
-#include "Romu.h"
-#include "5800Flash.h"
-#include "CPU.hpp"
-#include "Dcl/ChipsetInfo.h"
-#include "Emulator.hpp"
-#include "Hooks.h"
-#include "Logger.hpp"
-#include "ModelInfo.h"
-#include "Models.h"
 #include "Uart.h"
-#include "InterruptSource.hpp"
-#include "MMU.hpp"
+#include "WatchdogTimer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -345,8 +345,14 @@ namespace casioemu {
 			PANIC("std::ifstream failed: %s\n", std::strerror(errno));
 		rom_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(rom_handle)), std::istreambuf_iterator<char>());
 
+		if (emulator.hardware_id == HW_FX_5800P) {
+			std::ifstream flash_handle(emulator.GetModelFilePath(emulator.modeldef.flash_path), std::ifstream::binary);
+			if (flash_handle.fail())
+				PANIC("std::ifstream failed: %s\n", std::strerror(errno));
+			flash_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(flash_handle)), std::istreambuf_iterator<char>());
+		}
 		{
-			auto ri = rom_info(rom_data);
+			auto ri = rom_info(rom_data, flash_data);
 			if (ri.ok) {
 				printf("[Chipset] Model:       %s\n", ri.ver);
 				printf("[Chipset] CalcID:      %llx\n", *(unsigned long long*)ri.cid);
@@ -355,13 +361,6 @@ namespace casioemu {
 				if (res != real_hardware)
 					printf("[Chipset][Warn] SUM %s!\n", res ? "OK" : "NG");
 			}
-		}
-
-		if (emulator.hardware_id == HW_FX_5800P) {
-			std::ifstream flash_handle(emulator.GetModelFilePath(emulator.modeldef.flash_path), std::ifstream::binary);
-			if (flash_handle.fail())
-				PANIC("std::ifstream failed: %s\n", std::strerror(errno));
-			flash_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(flash_handle)), std::istreambuf_iterator<char>());
 		}
 		GetRamSize(emulator.hardware_id);
 		for (auto& peripheral : peripherals)

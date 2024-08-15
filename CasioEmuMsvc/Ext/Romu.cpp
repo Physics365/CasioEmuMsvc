@@ -7,6 +7,25 @@
 #include <iostream>
 #include <vector>
 
+inline byte get_pd(byte pd) {
+	if (pd > 8) {
+		pd >>= 4;
+	}
+	if (pd > 2) {
+		int fr = pd;
+		int res = 9;
+		while (fr < 0x100) {
+			res -= 1;
+			fr *= 2;
+		}
+		if ((fr & 0xff) != 0) {
+			return 0x10;
+		}
+		return res;
+	}
+	return pd;
+}
+
 inline word le_read(auto& p) {
 	// this works for le machine
 	return *(word*)&p;
@@ -16,6 +35,11 @@ inline void calc(word& sum, byte* bt, int len) {
 		sum -= le_read(bt[i]);
 	}
 }
+inline void calc3(word& sum, byte* bt, int len) {
+	for (size_t i = 0; i < len; i++) {
+		sum += bt[i];
+	}
+}
 
 inline void calc2(word& sum, byte* bt, int len) {
 	for (size_t i = 0; i < len; i++) {
@@ -23,8 +47,9 @@ inline void calc2(word& sum, byte* bt, int len) {
 	}
 }
 
-RomInfo rom_info(std::vector<byte> rom, bool checksum) {
+RomInfo rom_info(std::vector<byte>& rom, const std::vector<byte>& flash, bool checksum) {
 	auto dat = rom.data();
+	auto dat2 = (byte*)flash.data(); // this is hack xD
 	RomInfo ri{};
 	auto spinit = *(word*)dat;
 	enum {
@@ -75,18 +100,29 @@ RomInfo rom_info(std::vector<byte> rom, bool checksum) {
 			sum_type = CWII;
 		}
 	}
-	else if (spinit == 0x8dfe) {
-		ri.type = RomInfo::ES;
-		auto str = (byte*)FindSignature(dat, 0x8000, "52 4f 4d 20 30");
-		memcpy(ri.ver, str, 8);
-		ri.ok = true;
-		return ri;
-	}
-	else if (spinit == 0x8e00) {
-		ri.type = RomInfo::Fx5800p;
-		return ri;
-	}
-	else { // if (spinit == 0x8dec || spinit == 0x8de8 || spinit == 0x8df2 || spinit == 0x8dea)
+	else {
+		auto str = (byte*)FindSignature(dat, 0x8000, "49 4E 52 4f 4d 2D");
+		if (str) {
+			if (flash.size() < 0x80000) {
+				return ri;
+			}
+			ri.type = RomInfo::Fx5800p;
+			ri.desired_sum = le_read(dat2[0x7fffe]);
+			memcpy(ri.ver, str + 2, 8);
+			if (checksum) {
+				calc3(ri.real_sum, &dat2[0x40000], 0x3fffe);
+			}
+			ri.ok = true;
+			return ri;
+		}
+		str = (byte*)FindSignature(dat, 0x8000, "52 4f 4d 20 30");
+		if (str) {
+			ri.type = RomInfo::ES;
+			memcpy(ri.ver, str, 8);
+			ri.ok = true;
+			return ri;
+		}
+
 		if (rom.size() < 0x20000) {
 			return ri;
 		}
@@ -105,7 +141,6 @@ RomInfo rom_info(std::vector<byte> rom, bool checksum) {
 			return ri;
 		}
 	}
-
 	// std::cout << sum_type << "\n";
 	switch (sum_type) {
 	case ESP1:

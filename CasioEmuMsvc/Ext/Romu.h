@@ -18,4 +18,4 @@ struct RomInfo {
 	} type;
 	bool ok;
 };
-RomInfo rom_info(std::vector<byte> rom, bool checksum = true);
+RomInfo rom_info(std::vector<byte>& rom, const std::vector<byte>& flash, bool checksum = true);

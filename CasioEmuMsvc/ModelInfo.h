@@ -53,8 +53,12 @@ namespace casioemu {
 		bool enable_new_screen{};
 		bool is_sample_rom{};
 		bool legacy_ko{};
+		bool u16_mode{};
+		bool LARGE_model{};
+		// ML620 style mirroring(1->8) or ML610 style mirroring(1->4)
+		bool ml620_mirroring{};
 		void Write(std::ostream& os) const {
-			Binary::Write(os, std::string("\n\nGenshin Configuration file v50\n\n原神配置文件v50\n\n"));
+			Binary::Write(os, std::string("\n\nnx-U16/U8 Emulator Configuration file v51\n\n模拟器配置文件v51\n\ntệp cấu hình giả lập v51\n\n"));
 			Binary::Write(os, csr_mask);
 			Binary::Write(os, hardware_id);
 			Binary::Write(os, real_hardware);
@@ -69,6 +73,9 @@ namespace casioemu {
 			Binary::Write(os, enable_new_screen);
 			Binary::Write(os, is_sample_rom);
 			Binary::Write(os, legacy_ko);
+			Binary::Write(os, u16_mode);
+			Binary::Write(os, LARGE_model);
+			Binary::Write(os, ml620_mirroring);
 		}
 		void Read(std::istream& is) {
 			{
@@ -89,6 +96,28 @@ namespace casioemu {
 			Binary::Read(is, enable_new_screen);
 			Binary::Read(is, is_sample_rom);
 			Binary::Read(is, legacy_ko);
+			// set default value if loaded a old config
+			if (hardware_id == HW_ES_PLUS) {
+				u16_mode = false;
+			}
+			else {
+				u16_mode = true;
+			}
+			if (hardware_id == HW_SOLARII) {
+				LARGE_model = false;
+			}
+			else {
+				LARGE_model = true;
+			}
+			if (hardware_id == HW_CLASSWIZ) {
+				ml620_mirroring = false;
+			}
+			else {
+				ml620_mirroring = true;
+			}
+			Binary::Read(is, u16_mode);
+			Binary::Read(is, LARGE_model);
+			Binary::Read(is, ml620_mirroring);
 		}
 	};
 } // namespace casioemu

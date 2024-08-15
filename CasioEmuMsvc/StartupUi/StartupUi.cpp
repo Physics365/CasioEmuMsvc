@@ -7,7 +7,6 @@
 #include "Gui/imgui/imgui_impl_sdlrenderer2.h"
 #include "ModelInfo.h"
 #include "Romu.h"
-#include "ModelInfo.h"
 #include "ui.hpp"
 #include <SDL.h>
 #include <SDL_image.h>
@@ -426,7 +425,11 @@ namespace casioemu {
 							continue;
 						std::vector<byte> rom{std::istreambuf_iterator<char>{ifs2.rdbuf()}, std::istreambuf_iterator<char>{}};
 						ifs2.close();
-						auto ri = rom_info(rom, mi.real_hardware);
+						std::vector<byte> flash{};
+						std::ifstream ifs3(dir.path() / mi.flash_path, std::ios::in | std::ios::binary);
+						if (ifs3)
+							flash = {std::istreambuf_iterator<char>{ifs3.rdbuf()}, std::istreambuf_iterator<char>{}};
+						auto ri = rom_info(rom, flash, mi.real_hardware);
 						if (ri.type != 0) {
 							switch (ri.type) {
 							case RomInfo::ES:
