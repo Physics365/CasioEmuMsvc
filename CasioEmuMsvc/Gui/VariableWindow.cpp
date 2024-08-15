@@ -1,6 +1,6 @@
 ﻿#include "VariableWindow.h"
-#include "Models.h"
 #include "CwiiHelp.h"
+#include "Models.h"
 #include "imgui/imgui.h"
 #include "ui.hpp"
 #include <string>

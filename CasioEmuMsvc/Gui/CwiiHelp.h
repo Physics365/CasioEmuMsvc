@@ -1,8 +1,8 @@
 ﻿#pragma once
+#include "Gui/Ui.hpp"
+#include "Models.h"
 #include <string>
 #include <unordered_map>
-#include "Models.h"
-#include "Gui/Ui.hpp"
 namespace cwii {
 	inline std::string trim(const std::string& str) {
 		size_t first = str.find_first_not_of('0');
@@ -45,6 +45,16 @@ namespace cwii {
 		}
 		return fin;
 	}
+	inline uint64_t LoadInt(const char* p, size_t size, int bn) {
+		uint64_t res = 0;
+		for (size_t i = 0; i < size; i++) {
+			res *= bn;
+			res += (p[i] >> 4) & 0xF;
+			res *= bn;
+			res += p[i] & 0xF;
+		}
+		return res;
+	}
 	inline std::string HexExp(char p, int sign) {
 		std::string fin;
 		const char* ss = "????????????????0123456789ABCDEF";
@@ -82,7 +92,84 @@ namespace cwii {
 		}
 		return 1;
 	}
+	inline std::string StringizeTiNumber(const char* p) {
+		auto sign = ((p[6] & 0xf) == 0x8);
+		if ((unsigned char)p[0] > 0x99 || p[0] == 0) { // Special
+			if (p[7] == 0x00) {
+				goto parse_0;
+			}
+			if (p[7] == 0x01) {
+				auto upper = (p[6] >> 4) & 0xf;
+				if (upper > 3)
+					upper = 0;
+				int bn[] = {10, 16, 8, 2};
+				const char* ed[] = {"",
+					"h",
+					"o",
+					"b"};
+				auto s = ed[upper];
+				auto it = LoadInt(&p[1], 5, bn[upper]);
+				char buffer[20];
+				_ltoa_s(it, buffer, bn[upper]);
+				return (sign ? "-" : "") + (std::string)buffer + s;
+			}
+			if (p[7] == 0x02) {
+				auto divider = trimStart(HexizeString(&p[1], 2));
+				auto number = HexizeString(&p[3], 4);
+				number.resize(7);
+				number = trimStart(number);
+				if (divider == "1")
+					return number;
+				return number + "/" + divider;
+			}
+			if (p[7] == 0x03) {
+				auto divider = trimStart(HexizeString(&p[1], 2));
+				auto number = HexizeString(&p[3], 2);
+				auto scale = HexizeString(&p[5], 2);
+				number.resize(3);
+				scale.resize(3);
+				number = trimStart(number);
+				scale = "(" + trimStart(scale) + "+1)";
+				if (divider == "1")
+					return number + "*" + scale;
+				return scale + "*" + number + "/" + divider;
+			}
+			if (p[7] == 0x04) {
+				auto sqrt1 = HexizeString(p, 2);
+				sqrt1.erase(sqrt1.begin());
+				sqrt1 = trimStart(sqrt1);
+				auto divider = trimStart(HexizeString(&p[2], 1));
+				auto coeff1 = trimStart(HexizeString(&p[3], 1));
+				auto sqrt2 = HexizeString(&p[5], 2);
+				auto coeff2 = trimStart(HexizeString(&p[4], 1));
+				sqrt2.erase(sqrt2.end() - 1);
+				sqrt2 = trimStart(sqrt2);
+				return "(" + coeff1 + "*sqrt(" + sqrt1 + ")+" + coeff2 + "*sqrt(" + sqrt2 + "))/" + divider;
+			}
+			return "frac";
+		}
+	parse_0:
+		auto dat = HexizeString(p, 7);
+		auto exp = (int)p[7];
+
+		dat.resize(2 * 7 - 1);
+		dat.insert(dat.begin() + 1, '.');
+		dat = trimEnd(dat);
+		if (dat == "0")
+			return "0";
+		if (sign) {
+			dat = "-" + dat;
+		}
+		if (exp != 0) {
+			dat += "x10^";
+			dat += std::to_string(exp);
+		}
+		return dat;
+	}
 	inline std::string StringizeCwiiNumber(const char* p) {
+		if (m_emu->hardware_id == casioemu::HW_TI) {
+			return StringizeTiNumber(p);
+		}
 		auto sz = casioemu::GetVariableSize(m_emu->hardware_id);
 		auto type = (p[0] >> 4) & 0xF;
 		auto exp = p[sz - 2];
@@ -266,4 +353,4 @@ namespace cwii {
 		a[0x4B] = "Inequality";
 		return a;
 	}();
-}
+} // namespace cwii
