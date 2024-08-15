@@ -463,6 +463,11 @@ namespace casioemu {
 							mod.checksum2 = tohex(ri.desired_sum, 4);
 							mod.sum_good = ri.real_sum == ri.desired_sum ? "OK" : "NG";
 							mod.id = tohex(*(unsigned long long*)ri.cid, 8);
+							if (ri.type == RomInfo::ES) {
+								auto a = get_pd(mi.pd_value);
+								using std::operator""s;
+								mod.version += " (P"s + a + ")";
+							}
 						}
 						else {
 							mod.show_sum = false;
@@ -586,7 +591,7 @@ namespace casioemu {
 				"Version"
 #endif
 				,
-				ImGuiTableColumnFlags_WidthFixed, 80);
+				ImGuiTableColumnFlags_WidthFixed, 120);
 			ImGui::TableSetupColumn(
 #if LANGUAGE == 2
 				"校验和"
@@ -696,7 +701,7 @@ std::string sui_loop() {
 		"CasioEmuMsvc",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		800, 800,
+		1200, 800,
 		SDL_WINDOW_SHOWN | (SDL_WINDOW_RESIZABLE));
 	renderer2 = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");

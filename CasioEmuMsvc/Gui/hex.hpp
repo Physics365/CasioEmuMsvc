@@ -107,6 +107,7 @@ struct MemoryEditor {
 	size_t HighlightMin, HighlightMax;
 	int PreviewEndianess;
 	ImGuiDataType PreviewDataType;
+	float* ram_edit_ov = 0;
 
 	MemoryEditor() {
 		// Settings
@@ -276,7 +277,6 @@ struct MemoryEditor {
 						}
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
 					}
-
 					if (DataEditingAddr == addr) {
 						// Display text input on current byte
 						bool data_write = false;
@@ -609,6 +609,19 @@ struct MemoryEditor {
 						}
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
 					}
+					if (ram_edit_ov && ram_edit_ov[(size_t)mem_data + addr] > 0) {
+						ImVec2 pos = ImGui::GetCursorScreenPos();
+						float highlight_width = s.GlyphWidth * 2;
+						bool is_next_byte_highlighted = (addr + 1 < mem_size) && ((HighlightMax != (size_t)-1 && addr + 1 < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr + 1)));
+						if (is_next_byte_highlighted || (n + 1 == Cols)) {
+							highlight_width = s.HexCellWidth;
+							if (OptMidColsCount > 0 && n > 0 && (n + 1) < Cols && ((n + 1) % OptMidColsCount) == 0)
+								highlight_width += s.SpacingBetweenMidCols;
+						}
+						draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), IM_COL32(255, 0, 0, int(ram_edit_ov[(size_t)mem_data + addr])));
+						ram_edit_ov[(size_t)mem_data + addr] -= 10;
+					}
+
 
 					if (DataEditingAddr == addr) {
 						// Display text input on current byte

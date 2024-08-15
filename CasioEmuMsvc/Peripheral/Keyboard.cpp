@@ -96,14 +96,12 @@ namespace casioemu {
 				[](MMURegion* region, size_t offset) {
 					offset -= region->base;
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return (uint8_t)(keyboard->keyboard_out & 0xFF);
+					return (uint8_t)(keyboard->keyboard_out ^ 0xFF);
 				},
 				[](MMURegion* region, size_t offset, uint8_t data) {
-					offset -= region->base;
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
 					keyboard->keyboard_out = 0xFF ^ data;
-					if (!offset)
-						keyboard->RecalculateKI();
+					keyboard->RecalculateKI();
 				},
 				emulator);
 		}
@@ -178,6 +176,7 @@ namespace casioemu {
 					return keyboard->keyboard_ready_emu;
 				},
 				[](MMURegion* region, size_t offset, uint8_t data) {
+					std::cout << (int)data << "\n";
 					((Keyboard*)region->userdata)->keyboard_ready_emu = data;
 				},
 				emulator);
@@ -203,7 +202,12 @@ namespace casioemu {
 					return value;
 				},
 				MMURegion::IgnoreWrite, emulator);
-			region_pd_emu.Setup(0xF050, 1, "Keyboard/PdValue", &keyboard_pd_emu, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
+		}
+		if (emulator.hardware_id == HW_CLASSWIZ_II) {
+			region_pd_emu.Setup(0xF058, 1, "Keyboard/PdValue", &emulator.modeldef.pd_value, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
+		}
+		else if(emulator.hardware_id == HW_ES_PLUS || emulator.hardware_id == HW_CLASSWIZ) {
+			region_pd_emu.Setup(0xF050, 1, "Keyboard/PdValue", &emulator.modeldef.pd_value, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
 		}
 
 		{
@@ -565,7 +569,7 @@ namespace casioemu {
 	}
 
 	void Keyboard::RecalculateKI() {
-		if (emulator.hardware_id == HW_FX_5800P) { // TODO: label this as legacy ko?
+		if (emulator.hardware_id == HW_FX_5800P || emulator.modeldef.legacy_ko) { // TODO: label this as legacy ko?
 			keyboard_in = 0xFF;
 			for (auto& button : buttons)
 				if (button.type == Button::BT_BUTTON && button.pressed && button.ko_bit & keyboard_out)

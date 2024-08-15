@@ -65,6 +65,38 @@ void HwController::RenderCore() {
 		m_emu->cycles.Setup((Uint64)1 << cps, m_emu->cycles.timer_interval);
 	}
 	ImGui::Text("%.6f MHz", (double)m_emu->cycles.cycles_per_second / 1024 / 1024);
+	static int pd = m_emu->modeldef.pd_value;
+	static bool pdx[8];
+
+	// 初始化 pdx 数组，基于 pd 的初始值
+	for (int i = 0; i < 8; i++) {
+		pdx[i] = (pd & (1 << i)) != 0;
+	}
+
+	ImGui::Text("Pd");
+	for (size_t i = 0; i < 8; i++) {
+		ImGui::SameLine(i * 25. + 50.);
+		ImGui::Text("%zu", i);
+	}
+	ImGui::Dummy(ImVec2(0, 0));
+
+	bool changed = false;
+	for (size_t i = 0; i < 8; i++) {
+		ImGui::SameLine(i * 25. + 50.);
+		if (ImGui::Checkbox(("##" + std::to_string(i)).c_str(), &pdx[i])) {
+			changed = true;
+		}
+	}
+
+	if (changed) {
+		pd = 0;
+		for (int i = 0; i < 8; i++) {
+			if (pdx[i]) {
+				pd |= (1 << i);
+			}
+		}
+		m_emu->modeldef.pd_value = pd;
+	}
 	//	static char buf4[40];
 	//	ImGui::InputText("##cps_in", buf4, 40);
 	//	ImGui::SameLine();

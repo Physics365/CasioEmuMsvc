@@ -18,4 +18,14 @@ struct RomInfo {
 	} type;
 	bool ok;
 };
+inline char get_pd(byte pd) {
+	if (pd == 0)
+		return '-';
+	auto lg = log(pd) / log(2);
+	if (int(lg) != lg) {
+		return '?';
+	}
+	return int(lg) + '0';
+}
+
 RomInfo rom_info(std::vector<byte>& rom, const std::vector<byte>& flash, bool checksum = true);

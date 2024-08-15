@@ -113,12 +113,13 @@ namespace casioemu {
 	uint8_t MMU::ReadData(size_t offset, bool softwareRead) {
 		// if (offset >= (1 << 24))
 		//	PANIC("offset doesn't fit 24 bits\n");
-
-		MemoryEventArgs mea{};
-		mea.offset = offset;
-		RaiseEvent(on_memory_read, *this, mea);
-		if (mea.handled)
-			return mea.value;
+		if (softwareRead) {
+			MemoryEventArgs mea{};
+			mea.offset = offset;
+			RaiseEvent(on_memory_read, *this, mea);
+			if (mea.handled)
+				return mea.value;
+		}
 
 		/*
 		things about accessing unmapped segment is actually far more complex on real hardware;
@@ -174,13 +175,14 @@ namespace casioemu {
 			std::cout << data;
 			return;
 		}
-
-		MemoryEventArgs mea{};
-		mea.offset = offset;
-		mea.value = data;
-		RaiseEvent(on_memory_write, *this, mea);
-		if (mea.handled)
-			return;
+		if (softwareWrite) {
+			MemoryEventArgs mea{};
+			mea.offset = offset;
+			mea.value = data;
+			RaiseEvent(on_memory_write, *this, mea);
+			if (mea.handled)
+				return;
+		}
 
 		size_t segment_index = offset >> 16;
 		size_t segment_offset = offset & 0xFFFF;

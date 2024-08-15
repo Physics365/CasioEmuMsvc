@@ -7,24 +7,6 @@
 #include <iostream>
 #include <vector>
 
-inline byte get_pd(byte pd) {
-	if (pd > 8) {
-		pd >>= 4;
-	}
-	if (pd > 2) {
-		int fr = pd;
-		int res = 9;
-		while (fr < 0x100) {
-			res -= 1;
-			fr *= 2;
-		}
-		if ((fr & 0xff) != 0) {
-			return 0x10;
-		}
-		return res;
-	}
-	return pd;
-}
 
 inline word le_read(auto& p) {
 	// this works for le machine

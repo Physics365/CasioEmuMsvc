@@ -1,15 +1,18 @@
 ﻿#include "Editors.h"
-#include "Chipset/Chipset.hpp"
-#include "Models.h"
 #include "CPU.hpp"
+#include "Chipset/Chipset.hpp"
+#include "Hooks.h"
+#include "Models.h"
 #include "Ui.hpp"
 #include "hex.hpp"
+float ram_edit_ov[0x100000]{};
 struct HexEditor : public UIWindow, public MemoryEditor {
 	void* data{};
 	size_t size{};
 	size_t display_base{};
 	HexEditor(const char* name, void* data, size_t size, size_t base) : UIWindow(name), data(data), size(size), display_base(base) {
 		flags = ImGuiWindowFlags_NoScrollbar;
+		this->ram_edit_ov = ::ram_edit_ov;
 	}
 	void RenderCore() override {
 		this->DrawContents(data, size, display_base);
@@ -22,6 +25,7 @@ struct SpansHexEditor : public UIWindow, public MemoryEditor {
 	std::vector<MarkedSpan> spans{};
 	SpansHexEditor(const char* name, void* data, size_t size, size_t base, std::vector<MarkedSpan> spans) : UIWindow(name), data(data), size(size), display_base(base), spans(spans) {
 		flags = ImGuiWindowFlags_NoScrollbar;
+		this->ram_edit_ov = ::ram_edit_ov;
 	}
 	void RenderCore() override {
 		this->DrawContents(data, size, display_base, spans);
@@ -51,6 +55,10 @@ inline auto Highlight_Default(auto he) {
 }
 
 std::vector<UIWindow*> GetEditors() {
+	SetupHook(on_memory_write, [](casioemu::MMU& mmu, MemoryEventArgs& mea) {
+		// if (mmu.ReadData(mea.offset) != mea.value)
+		ram_edit_ov[mea.offset] = 255;
+	});
 	std::vector<UIWindow*> windows;
 	windows.push_back(
 		Highlight_Default(
