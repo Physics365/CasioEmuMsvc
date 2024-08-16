@@ -160,7 +160,7 @@ namespace casioemu {
 		MemoryByte& byte = segment[segment_offset];
 		MMURegion* region = byte.region;
 
-		if (!region) {
+		if (!region || !region->read) {
 			return 0;
 		}
 
@@ -194,7 +194,7 @@ namespace casioemu {
 
 		MemoryByte& byte = segment[segment_offset];
 		MMURegion* region = byte.region;
-		if (!region) {
+		if (!region || !region->write) {
 			std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
 			return;
 		}

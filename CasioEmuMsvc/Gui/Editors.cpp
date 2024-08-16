@@ -57,7 +57,8 @@ inline auto Highlight_Default(auto he) {
 std::vector<UIWindow*> GetEditors() {
 	SetupHook(on_memory_write, [](casioemu::MMU& mmu, MemoryEventArgs& mea) {
 		// if (mmu.ReadData(mea.offset) != mea.value)
-		ram_edit_ov[mea.offset] = 255;
+		if (mea.offset < 0x10000)
+			ram_edit_ov[mea.offset] = 255;
 	});
 	std::vector<UIWindow*> windows;
 	windows.push_back(

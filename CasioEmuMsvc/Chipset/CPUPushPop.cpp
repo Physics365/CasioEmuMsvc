@@ -1,7 +1,7 @@
 ﻿#include "CPU.hpp"
 
-#include "Emulator.hpp"
 #include "Chipset.hpp"
+#include "Emulator.hpp"
 #include "MMU.hpp"
 
 #include "Gui/Hooks.h"
@@ -83,9 +83,22 @@ namespace casioemu {
 
 			if (!stack->empty()) {
 				if (stack->back().lr_pushed) {
+					auto& m = emulator.chipset.mmu;
+					auto a = stack->back().lr_push_address;
+					auto lr_o = m.ReadData(a) | (m.ReadData(a + 1) << 8) | (m.ReadData(a + 2) << 16);
 					if (stack->back().lr_push_address == oldsp) {
-						RaiseEvent(on_function_return, *this, FunctionEventArgs{oldaddr, (uint32_t)reg_pc | reg_csr << 16});
-						stack->pop_back();
+						if (stack->back().lr != lr_o) {
+							std::cout << "[CPU][Warn] lr get overrided.\n";
+							// lets treat it as calling a new function?
+						}
+						else {
+							RaiseEvent(on_function_return, *this, FunctionEventArgs{oldaddr, (uint32_t)reg_pc | reg_csr << 16});
+							stack->pop_back();
+						}
+					}
+					else {
+						std::cout << "[CPU][Warn] stack unbalanced.\n";
+						// lets treat it as calling a new function?
 					}
 				}
 				else {

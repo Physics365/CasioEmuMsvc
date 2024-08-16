@@ -624,24 +624,52 @@ namespace casioemu {
 					emulator);
 			}
 			else {
-				if (!emulator.modeldef.real_hardware) {
-					region_buffer.Setup(
-						0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
-						[](MMURegion* region, size_t offset) {
-							offset -= region->base;
-							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-								return (uint8_t)0;
+				region_buffer.Setup(
+					0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
+					[](MMURegion* region, size_t offset) {
+						offset -= region->base;
+						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+							return (uint8_t)0;
+						if (((Screen*)region->userdata)->screen_select & 0x04) {
+							return ((Screen*)region->userdata)->screen_buffer1[offset];
+						}
+						else {
 							return ((Screen*)region->userdata)->screen_buffer[offset];
-						},
-						[](MMURegion* region, size_t offset, uint8_t data) {
-							offset -= region->base;
-							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-								return;
+						}
+					},
+					[](MMURegion* region, size_t offset, uint8_t data) {
+						offset -= region->base;
+						if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+							return;
 
-							auto this_obj = (Screen*)region->userdata;
+						auto this_obj = (Screen*)region->userdata;
+						// * Set require_frame to true only if the value changed.
+						if (((Screen*)region->userdata)->screen_select & 0x04) {
+							this_obj->screen_buffer1[offset] = data;
+						}
+						else {
 							this_obj->screen_buffer[offset] = data;
-						},
-						emulator);
+						}
+					},
+					emulator);
+				if (!emulator.modeldef.real_hardware) {
+					//region_buffer.Setup(
+					//	0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
+					//	[](MMURegion* region, size_t offset) {
+					//		offset -= region->base;
+					//		if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+					//			return (uint8_t)0;
+					//		return ((Screen*)region->userdata)->screen_buffer[offset];
+					//	},
+					//	[](MMURegion* region, size_t offset, uint8_t data) {
+					//		offset -= region->base;
+					//		if (offset % ROW_SIZE >= ROW_SIZE_DISP)
+					//			return;
+
+					//		auto this_obj = (Screen*)region->userdata;
+					//		this_obj->screen_buffer[offset] = data;
+					//	},
+					//	emulator);
 					region_buffer1.Setup(
 						0x89000, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer1", this,
 						[](MMURegion* region, size_t offset) {
@@ -657,36 +685,6 @@ namespace casioemu {
 
 							auto this_obj = (Screen*)region->userdata;
 							this_obj->screen_buffer1[offset] = data;
-						},
-						emulator);
-				}
-				else {
-					region_buffer.Setup(
-						0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
-						[](MMURegion* region, size_t offset) {
-							offset -= region->base;
-							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-								return (uint8_t)0;
-							if (((Screen*)region->userdata)->screen_select & 0x04) {
-								return ((Screen*)region->userdata)->screen_buffer1[offset];
-							}
-							else {
-								return ((Screen*)region->userdata)->screen_buffer[offset];
-							}
-						},
-						[](MMURegion* region, size_t offset, uint8_t data) {
-							offset -= region->base;
-							if (offset % ROW_SIZE >= ROW_SIZE_DISP)
-								return;
-
-							auto this_obj = (Screen*)region->userdata;
-							// * Set require_frame to true only if the value changed.
-							if (((Screen*)region->userdata)->screen_select & 0x04) {
-								this_obj->screen_buffer1[offset] = data;
-							}
-							else {
-								this_obj->screen_buffer[offset] = data;
-							}
 						},
 						emulator);
 				}
