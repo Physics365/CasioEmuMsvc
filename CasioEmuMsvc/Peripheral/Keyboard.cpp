@@ -78,6 +78,45 @@ namespace casioemu {
 		real_hardware = emulator.modeldef.real_hardware;
 
 		clock_type = CLOCK_UNDEFINED;
+		if (emulator.hardware_id == HW_TI) {
+			// P3 is KO,P4 is KI
+			region_ko.Setup(
+				0xF228, 1, "Keyboard/KO", this,
+				[](MMURegion* region, size_t offset) {
+					Keyboard* keyboard = ((Keyboard*)region->userdata);
+					return (uint8_t)((keyboard->keyboard_out & keyboard->keyboard_out_mask));
+				},
+				[](MMURegion* region, size_t offset, uint8_t data) {
+					Keyboard* keyboard = ((Keyboard*)region->userdata);
+					keyboard->keyboard_out = data;
+					keyboard->RecalculateKI();
+				},
+				emulator);
+			region_ko_mask.Setup(
+				0xF229, 1, "Keyboard/KOMask", this,
+				[](MMURegion* region, size_t offset) {
+					Keyboard* keyboard = ((Keyboard*)region->userdata);
+					return (uint8_t)((keyboard->keyboard_out_mask));
+				},
+				[](MMURegion* region, size_t offset, uint8_t data) {
+					Keyboard* keyboard = ((Keyboard*)region->userdata);
+					keyboard->keyboard_out_mask = data;
+					keyboard->RecalculateKI();
+				},
+				emulator);
+			// P4D
+			region_ki.Setup(
+				0xF230, 1, "Keyboard/KI", &keyboard_in, [](MMURegion* region, size_t offset) -> uint8_t {
+					Keyboard* keyboard = ((Keyboard*)region->userdata);
+					return 0;
+					return ~(keyboard->keyboard_in) & 0x3f;
+				},
+				MMURegion::IgnoreWrite, emulator);
+			//region_ki_emu.Setup(0XF210, 1, "Keyboard/EmuStatus", 0,
+			//	MMURegion::IgnoreRead<0xff>, MMURegion::IgnoreWrite, emulator);
+			EXI0INT = 4;
+			goto init_kbd;
+		}
 
 		region_ki.Setup(0xF040, 1, "Keyboard/KI", &keyboard_in, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
 
@@ -176,7 +215,6 @@ namespace casioemu {
 					return keyboard->keyboard_ready_emu;
 				},
 				[](MMURegion* region, size_t offset, uint8_t data) {
-					std::cout << (int)data << "\n";
 					((Keyboard*)region->userdata)->keyboard_ready_emu = data;
 				},
 				emulator);
@@ -206,88 +244,91 @@ namespace casioemu {
 		if (emulator.hardware_id == HW_CLASSWIZ_II) {
 			region_pd_emu.Setup(0xF058, 1, "Keyboard/PdValue", &emulator.modeldef.pd_value, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
 		}
-		else if(emulator.hardware_id == HW_ES_PLUS || emulator.hardware_id == HW_CLASSWIZ) {
+		else if (emulator.hardware_id == HW_ES_PLUS || emulator.hardware_id == HW_CLASSWIZ) {
 			region_pd_emu.Setup(0xF050, 1, "Keyboard/PdValue", &emulator.modeldef.pd_value, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
 		}
 
-		{
-			for (auto& button : buttons)
-				button.type = Button::BT_NONE;
+	init_kbd: {
+		for (auto& button : buttons)
+			button.type = Button::BT_NONE;
 
-			for (auto& btn : emulator.modeldef.buttons) {
-				auto button_name = btn.keyname.c_str();
+		for (auto& btn : emulator.modeldef.buttons) {
+			auto button_name = btn.keyname.c_str();
 
-				SDL_Keycode button_key;
-				button_key = SDL_GetKeyFromName(button_name);
-				if (button_key == SDLK_UNKNOWN)
-					printf("[Keyboard] Warn: Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
+			SDL_Keycode button_key;
+			button_key = SDL_GetKeyFromName(button_name);
+			if (button_key == SDLK_UNKNOWN)
+				printf("[Keyboard] Warn: Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
 
-				uint8_t code = btn.kiko;
-				size_t button_ix;
-				if (code == 0xFF) {
-					button_ix = 63;
-				}
-				else {
-					if (emulator.hardware_id == HW_TI) {
-						button_ix = btn.kiko;
-					}
-					else {
-						button_ix = ((code >> 1) & 0x38) | (code & 0x07);
-					}
-					if (button_ix >= 64)
-						PANIC("button index doesn't fit 6 bits\n");
-				}
-
-				if (button_key != SDLK_UNKNOWN) {
-					bool insert_success = keyboard_map.emplace(button_key, button_ix).second;
-					if (!insert_success)
-						printf("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
-				}
-				std::string bn2;
-				if (btn.keyname.starts_with("Keypad ")) {
-					if (btn.keyname == "Keypad Enter") {
-						bn2 = "Return";
-					}
-					else {
-						bn2 = btn.keyname.substr(7);
-					}
-				}
-				else {
-					if (btn.keyname == "Return") {
-						bn2 = "Keypad Enter";
-					}
-					else if (btn.keyname == "Backspace") {
-						bn2 = "Delete";
-					}
-					else if (btn.keyname == "Delete") {
-						bn2 = "Backspace";
-					}
-					else {
-						bn2 = "Keypad " + btn.keyname;
-					}
-				}
-				auto button_key_2 = SDL_GetKeyFromName(bn2.c_str());
-				if (button_key_2 != SDLK_UNKNOWN) {
-					bool insert_success = keyboard_map.emplace(button_key_2, button_ix).second;
-				}
-
-				Button& button = buttons[button_ix];
-				button = {};
-
-				if (code == 0xFF)
-					button.type = Button::BT_POWER;
-				else
-					button.type = Button::BT_BUTTON;
-				button.rect = btn.rect;
+			uint8_t code = btn.kiko;
+			size_t button_ix;
+			if (code == 0xFF) {
+				button_ix = 63;
+			}
+			else {
 				if (emulator.hardware_id == HW_TI) {
-					button.code = btn.kiko;
+					button_ix = btn.kiko;
 				}
 				else {
-					button.ko_bit = 1 << ((code >> 4) & 0xF);
-					button.ki_bit = 1 << (code & 0xF);
+					button_ix = ((code >> 1) & 0x38) | (code & 0x07);
+				}
+				if (button_ix >= 64)
+					PANIC("button index doesn't fit 6 bits\n");
+			}
+
+			if (button_key != SDLK_UNKNOWN) {
+				bool insert_success = keyboard_map.emplace(button_key, button_ix).second;
+				if (!insert_success)
+					printf("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
+			}
+			std::string bn2;
+			if (btn.keyname.starts_with("Keypad ") || btn.keyname.starts_with("keypad ")) {
+				if (btn.keyname == "Keypad Enter" || btn.keyname == "keypad enter") {
+					bn2 = "Return";
+				}
+				else {
+					bn2 = btn.keyname.substr(7);
 				}
 			}
+			else {
+				if (btn.keyname == "Return") {
+					bn2 = "Keypad Enter";
+				}
+				else if (btn.keyname == "enter") {
+					bn2 = "Return";
+				}
+				else if (btn.keyname == "Backspace") {
+					bn2 = "Delete";
+				}
+				else if (btn.keyname == "Delete") {
+					bn2 = "Backspace";
+				}
+				else {
+					bn2 = "Keypad " + btn.keyname;
+				}
+			}
+			auto button_key_2 = SDL_GetKeyFromName(bn2.c_str());
+			if (button_key_2 != SDLK_UNKNOWN) {
+				bool insert_success = keyboard_map.emplace(button_key_2, button_ix).second;
+			}
+
+			Button& button = buttons[button_ix];
+			button = {};
+
+			if (code == 0xFF)
+				button.type = Button::BT_POWER;
+			else
+				button.type = Button::BT_BUTTON;
+			button.rect = btn.rect;
+			if (emulator.hardware_id == HW_TI) {
+				button.code = btn.kiko;
+			}
+			else {
+				button.ko_bit = 1 << ((code >> 4) & 0xF);
+				button.ki_bit = 1 << (code & 0xF);
+			}
 		}
+	}
 	}
 
 	void Keyboard::Reset() {
@@ -390,6 +431,15 @@ namespace casioemu {
 			auto iterator = keyboard_map.find(keycode);
 			printf("Key: %x(%s)\n", keycode, SDL_GetKeyName(keycode));
 			if (event.key.keysym.sym == SDLK_F11 && event.key.state) {
+				if (event.key.keysym.mod & KMOD_LCTRL) {
+					emulator.chipset.Reset();
+					return;
+				}
+				if (emulator.hardware_id == HW_TI){
+					emulator.chipset.ti_key = 0xfe;
+					printf("Entered diag\n");
+					return;
+				}
 				factory_test = !factory_test;
 				printf("Factory test status: %d\n", factory_test);
 				return;
@@ -426,6 +476,7 @@ namespace casioemu {
 		}
 		if (button.type == Button::BT_BUTTON) {
 			if (emulator.hardware_id == HW_TI) {
+				emulator.chipset.MaskableInterrupts[EXI0INT].TryRaise();
 				printf("Keycode: 0x%x\n", button.code);
 				if (!emulator.chipset.GetRunningState() && button.code == 0x29) {
 					emulator.chipset.Reset();
@@ -594,13 +645,14 @@ namespace casioemu {
 		for (auto& button : buttons)
 			if (button.type == Button::BT_BUTTON && button.pressed && button.ki_bit & input_mode & ki_pulled_up)
 				keyboard_in |= button.ki_bit;
-
-		if (keyboard_out & ~keyboard_out_mask & (1 << 7) && p0)
-			keyboard_in &= 0x7F;
-		if (keyboard_out & ~keyboard_out_mask & (1 << 8) && p1)
-			keyboard_in &= 0x7F;
-		if (keyboard_out & ~keyboard_out_mask & (1 << 9) && p146)
-			keyboard_in &= 0x7F;
+		if (emulator.hardware_id != HW_TI) {
+			if (keyboard_out & ~keyboard_out_mask & (1 << 7) && p0)
+				keyboard_in &= 0x7F;
+			if (keyboard_out & ~keyboard_out_mask & (1 << 8) && p1)
+				keyboard_in &= 0x7F;
+			if (keyboard_out & ~keyboard_out_mask & (1 << 9) && p146)
+				keyboard_in &= 0x7F;
+		}
 	}
 
 	void Keyboard::ReleaseAll() {

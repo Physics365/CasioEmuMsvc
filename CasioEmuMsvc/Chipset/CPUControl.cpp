@@ -1,9 +1,9 @@
 ﻿#include "CPU.hpp"
 
+#include "Chipset.hpp"
 #include "Emulator.hpp"
 #include "Gui/Hooks.h"
 #include "Gui/ui.hpp"
-#include "Chipset.hpp"
 #include "MMU.hpp"
 namespace casioemu {
 	// * Control Register Access Instructions
@@ -206,11 +206,14 @@ namespace casioemu {
 	}
 
 	void CPU::OP_BL() {
+#ifdef DBG
 		auto stack = this->stack.get();
+#endif
 		reg_lr = reg_pc;
 		reg_lcsr = reg_csr;
 		// if (!stack->empty() && !stack->back().lr_pushed) {}
 		OP_B();
+#ifdef DBG
 		StackFrame sf{};
 		sf.new_pc = reg_csr << 16 | reg_pc;
 		if (!stack->empty() && !stack->back().lr_pushed) {
@@ -220,16 +223,19 @@ namespace casioemu {
 		stack->push_back(sf);
 		if (on_call_function)
 			on_call_function(*this, {sf.new_pc, (uint32_t)(reg_lcsr << 16 | reg_lr)});
+#endif
 	}
 
 	// * Miscellaneous Instructions
 	void CPU::OP_RT() {
+#ifdef DBG
 		auto stack = this->stack.get();
 		if (stack->empty()) {}
 		else {
 			if (stack->back().lr_pushed) {}
 			stack->pop_back();
 		}
+#endif
 		reg_csr = reg_lcsr;
 		reg_pc = reg_lr;
 	}

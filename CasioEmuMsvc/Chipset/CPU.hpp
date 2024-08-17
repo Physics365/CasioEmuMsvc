@@ -132,6 +132,7 @@ namespace casioemu {
 		std::string GetBacktrace() const;
 
 	private:
+#ifdef DBG
 		struct StackFrame {
 			bool lr_pushed;
 			bool is_jump;
@@ -139,6 +140,7 @@ namespace casioemu {
 			uint32_t lr, new_pc;
 		};
 		ConcurrentObject<std::vector<StackFrame>> stack;
+#endif
 
 		uint16_t Fetch();
 

@@ -29,23 +29,6 @@
 
 #if _WIN32
 #include <Windows.h>
-#include <filesystem>
-std::string ShowOpenFileDialog() {
-	OPENFILENAMEA ofn{};
-	char szFile[260]{};
-
-	ofn.lStructSize = sizeof(ofn);
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = "Model Configuration\0Config.bin\0All Files\0*.*\0";
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-	GetOpenFileNameA(&ofn);
-	return std::filesystem::path(szFile).parent_path().string();
-}
 #pragma comment(lib, "winmm.lib")
 #endif
 
@@ -115,7 +98,9 @@ int main(int argc, char* argv[]) {
 		}
 	});
 	t3.detach();
+#ifdef DBG
 	test_gui(&guiCreated);
+#endif
 	while (emulator.Running()) {
 		SDL_Event event{};
 		busy = false;
@@ -123,7 +108,9 @@ int main(int argc, char* argv[]) {
 			continue;
 		busy = true;
 		if (event.type == frame_event) {
+#ifdef DBG
 			gui_loop();
+#endif
 			emulator.Frame();
 			continue;
 		}
@@ -146,10 +133,12 @@ int main(int argc, char* argv[]) {
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEWHEEL:
 		default:
+#ifdef DBG
 			if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
 				ImGui_ImplSDL2_ProcessEvent(&event);
 				continue;
 			}
+#endif
 			emulator.UIEvent(event);
 			break;
 		}

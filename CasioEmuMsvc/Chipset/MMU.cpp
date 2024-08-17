@@ -1,11 +1,11 @@
 ﻿#include "MMU.hpp"
 
+#include "CPU.hpp"
+#include "Chipset.hpp"
 #include "Emulator.hpp"
 #include "Gui/Hooks.h"
 #include "Gui/Ui.hpp"
 #include "Logger.hpp"
-#include "CPU.hpp"
-#include "Chipset.hpp"
 #include <cstring>
 
 namespace casioemu {
@@ -113,6 +113,7 @@ namespace casioemu {
 	uint8_t MMU::ReadData(size_t offset, bool softwareRead) {
 		// if (offset >= (1 << 24))
 		//	PANIC("offset doesn't fit 24 bits\n");
+#ifdef DBG
 		if (softwareRead) {
 			MemoryEventArgs mea{};
 			mea.offset = offset;
@@ -120,6 +121,7 @@ namespace casioemu {
 			if (mea.handled)
 				return mea.value;
 		}
+#endif
 
 		/*
 		things about accessing unmapped segment is actually far more complex on real hardware;
@@ -171,6 +173,7 @@ namespace casioemu {
 		// if (offset >= (1 << 24))
 		//	PANIC("offset doesn't fit 24 bits\n");
 
+#ifdef DBG
 		if (offset == 0x60721) {
 			std::cout << data;
 			return;
@@ -183,6 +186,7 @@ namespace casioemu {
 			if (mea.handled)
 				return;
 		}
+#endif
 
 		size_t segment_index = offset >> 16;
 		size_t segment_offset = offset & 0xFFFF;
@@ -195,7 +199,9 @@ namespace casioemu {
 		MemoryByte& byte = segment[segment_offset];
 		MMURegion* region = byte.region;
 		if (!region || !region->write) {
+#ifdef DBG
 			std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
+#endif
 			return;
 		}
 		region->write(region, offset, data);

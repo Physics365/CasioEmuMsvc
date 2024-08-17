@@ -14,11 +14,15 @@
 #else
 #define FUNCTION_NAME __func__
 #endif
+#ifdef ENABLE_CRASH_CHECK
 #define PANIC(...)           \
 	{                        \
 		printf(__VA_ARGS__); \
 		__debugbreak();      \
 	}
+#else
+#define PANIC(...) 0;
+#endif
 
 // Languages:
 // 1 - English
@@ -29,3 +33,7 @@
 
 #define LOCK(x) \
 	std::lock_guard<std::mutex> lock_##x{x};
+
+// Enable debug feature
+
+#define DBG

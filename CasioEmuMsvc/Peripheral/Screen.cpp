@@ -1,4 +1,23 @@
-﻿#include "Screen.hpp"
+﻿/*
+
+	Screen peripheral implement.
+	Copyright (C) 2024 telecomadm1145/Xyzst/user202729/LBPHacker
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+#include "Screen.hpp"
 #include "Chipset/Chipset.hpp"
 #include "Chipset/MMU.hpp"
 #include "Chipset/MMURegion.hpp"
@@ -77,9 +96,18 @@ namespace casioemu {
 
 		uint8_t unk_f034{};
 
+		// TI things
+
 		MMURegion ti_port7_data{}, ti_port5_data{};
 		int ti_contrast{}, ti_port_status{};
 		bool ti_enabled = 0;
+		bool ti_a0 = 0;
+		bool ti_rw = 0;
+		int ti_col = 0;
+		int ti_page = 0;
+
+		int ti_port7{};
+		int ti_port5{};
 
 		float screen_scan_alpha[64]{};
 		float position = 0;
@@ -134,7 +162,7 @@ namespace casioemu {
 				float ink_alpha_on = (ti_contrast - 100) * 20.0;
 				float ink_alpha_off = std::clamp(ink_alpha_on * 0.1, 0.0, 255.0);
 				ink_alpha_on = std::clamp(ink_alpha_on, 0.0f, 255.0f);
-				auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_screen_buf;
+				// auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_screen_buf;
 				for (int ix = 0; ix < 192; ++ix) {
 					for (int iy = 0; iy < 64; ++iy) {
 						uint32_t i = (ix << 6) | iy;
@@ -146,7 +174,7 @@ namespace casioemu {
 						data = data * ratio + (on ? ink_alpha_on : ink_alpha_off) * (1 - ratio);
 					}
 				}
-				screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_status_buf;
+				auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_status_buf;
 				int x = 0;
 				for (int ix = 1; ix != SPR_MAX; ++ix) {
 					auto off = sprite_bitmap[ix].offset;
@@ -536,30 +564,28 @@ namespace casioemu {
 				sprite_info[ix] = emulator.modeldef.sprites[sprite_bitmap[ix].name];
 
 			ink_colour = emulator.modeldef.ink_color;
-			if constexpr (hardware_id != HW_TI) {
-				screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
-				fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
-				if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
-					region_power.Setup(
-						0xF03D, 1, "Screen/Power", this,
-						[](MMURegion* region, size_t offset) {
-							return ((Screen*)region->userdata)->screen_power;
-						},
-						[](MMURegion* region, size_t offset, uint8_t data) {
-							((Screen*)region->userdata)->screen_power = data & 0xf;
-							if ((data & 1) == 0) { // 关闭屏幕
-								((Screen*)region->userdata)->Uninitialise();
-							}
-							else {
-								((Screen*)region->userdata)->Initialise();
-							}
-						},
-						emulator);
-				}
-				if constexpr (hardware_id == HW_CLASSWIZ_II) {
-					screen_buffer1 = new uint8_t[(N_ROW + 1) * ROW_SIZE];
-					fillRandomData(screen_buffer1, (N_ROW + 1) * ROW_SIZE);
-				}
+			screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
+			fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
+			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
+				region_power.Setup(
+					0xF03D, 1, "Screen/Power", this,
+					[](MMURegion* region, size_t offset) {
+						return ((Screen*)region->userdata)->screen_power;
+					},
+					[](MMURegion* region, size_t offset, uint8_t data) {
+						((Screen*)region->userdata)->screen_power = data & 0xf;
+						if ((data & 1) == 0) { // 关闭屏幕
+							((Screen*)region->userdata)->Uninitialise();
+						}
+						else {
+							((Screen*)region->userdata)->Initialise();
+						}
+					},
+					emulator);
+			}
+			if constexpr (hardware_id == HW_CLASSWIZ_II) {
+				screen_buffer1 = new uint8_t[(N_ROW + 1) * ROW_SIZE];
+				fillRandomData(screen_buffer1, (N_ROW + 1) * ROW_SIZE);
 			}
 			inited = true;
 		}
@@ -569,41 +595,89 @@ namespace casioemu {
 				(MMURegion::ReadFunction)MMURegion::IgnoreRead<0>,
 				(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
 					auto this_obj = (Screen*)region->userdata;
-					if (data == 0)
-						return;
-					// std::cout << "Screen command:" << std::hex << (int)data << "\n"<< std::oct;
-					switch (this_obj->ti_port_status) {
-					case 0:
-						if (data == 0xa0) {
-							std::cout << "Enabled screen!\n";
-							this_obj->ti_enabled = 1;
-						}
-						if (data == 0x81) {
-							this_obj->ti_port_status = 1;
-						}
-						if (data == 0xae) {
-							std::cout << "Disabled screen!\n";
-							this_obj->ti_enabled = 0;
-						}
-						break;
-					case 1:
-						std::cout << "Set contrast!\n";
-						this_obj->ti_contrast = data;
-						this_obj->ti_port_status = 0;
-						break;
-					}
+					this_obj->ti_port7 = data;
 				},
 				emulator); // f238
 			ti_port5_data.Setup(
 				0xF238, 1, "Port5/Data", this,
-				(MMURegion::ReadFunction)MMURegion::IgnoreRead<0>,
+				(MMURegion::ReadFunction)[](MMURegion * region, size_t offset)->uint8_t {
+					auto this_obj = (Screen*)region->userdata;
+					return this_obj->ti_port5;
+				},
 				(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
 					auto this_obj = (Screen*)region->userdata;
-					if (data == 0)
-						return;
-					// std::cout << "Screen command1:" << std::hex << (int)data << "\n"<< std::oct;
+					this_obj->ti_port5 = data;
+					if (this_obj->ti_a0 && !(data & 0x40)) {
+						if ((data & 0x10)) {
+							auto bit_off = this_obj->ti_col;
+							auto off = bit_off + this_obj->ti_page * 192;
+							if (off > 24 * 64) {
+								return;
+							}
+							this_obj->screen_buffer[off] = this_obj->ti_port7;
+							this_obj->ti_col++;
+							if (this_obj->ti_col >= 192) {
+								this_obj->ti_col = 0;
+								this_obj->ti_page++;
+							}
+							std::cout << "a\n";
+						}
+						else {
+							auto data = this_obj->ti_port7;
+							switch (this_obj->ti_port_status) {
+							case 0: {
+								auto dh = data >> 4;
+								if (dh == 0) {
+									this_obj->ti_col = (this_obj->ti_col & 0xf0) | (data & 0xf);
+								}
+								else if (dh == 1) {
+									this_obj->ti_col = (this_obj->ti_col & 0xf) | ((data & 0xf) << 4);
+								}
+								else if ((dh & 0b1100) == 0b0100) {
+									std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
+								}
+								else if (dh == 0b1011) {
+									std::cout << "Set page  " << (data & 0xf) << "\n";
+									this_obj->ti_page = (data & 0xf);
+								}
+								else if ((data >> 2) == 58) {
+									std::cout << "Set Bias\n";
+								}
+								else if (data == 0xe3) {
+									std::cout << "Nop\n";
+								}
+								else if (data == 0xe2) {
+									std::cout << "Software reset\n";
+								}
+								else if (data == 0xaf) {
+									std::cout << "Enabled screen!\n";
+									this_obj->ti_enabled = 1;
+								}
+								else if (data == 0x81) {
+									this_obj->ti_port_status = 1;
+								}
+								else if (data == 0xae) {
+									std::cout << "Disabled screen!\n";
+									this_obj->ti_enabled = 0;
+								}
+								else {
+									std::cout << "Unknown " << std ::hex << (int)data << "\n"
+											  << std::dec;
+								}
+								break;
+							}
+							case 1:
+								std::cout << "Set contrast!\n";
+								this_obj->ti_contrast = data;
+								this_obj->ti_port_status = 0;
+								break;
+							}
+						}
+					}
+					this_obj->ti_a0 = (data & 0x40);
+					// this_obj->ti_rw = (data & 0x10);
 				},
-				emulator); 
+				emulator);
 			return;
 		}
 		if (!(hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) || (!enabled_2 && (screen_power & 1))) {
@@ -653,7 +727,7 @@ namespace casioemu {
 					},
 					emulator);
 				if (!emulator.modeldef.real_hardware) {
-					//region_buffer.Setup(
+					// region_buffer.Setup(
 					//	0xF800, (N_ROW + 1) * ROW_SIZE, "Screen/Buffer", this,
 					//	[](MMURegion* region, size_t offset) {
 					//		offset -= region->base;
@@ -911,5 +985,6 @@ namespace casioemu {
 		default:
 			PANIC("Unknown hardware id\n");
 		}
+		std::abort();
 	}
 } // namespace casioemu

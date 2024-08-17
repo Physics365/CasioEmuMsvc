@@ -1,10 +1,10 @@
 ﻿#include "CPU.hpp"
 
+#include "Chipset.hpp"
 #include "Emulator.hpp"
 #include "Gui/CodeViewer.hpp"
 #include "Gui/Hooks.h"
 #include "Logger.hpp"
-#include "Chipset.hpp"
 #include "MMU.hpp"
 
 #include <iomanip>
@@ -398,7 +398,9 @@ namespace casioemu {
 		reg_dsr = 0;
 		reg_psw = 0;
 		fetch_addition = 2;
+#ifdef DBG
 		stack.get()->clear();
+#endif
 	}
 
 	void CPU::Raise(size_t exception_level, size_t index) {
@@ -427,6 +429,7 @@ namespace casioemu {
 	}
 
 	std::string CPU::GetBacktrace() const {
+#ifdef DBG
 		std::stringstream output;
 		output << std::hex << std::setfill('0') << std::uppercase;
 		auto stack = this->stack.get_const();
@@ -449,5 +452,8 @@ namespace casioemu {
 			output << '\n';
 		}
 		return output.str();
+#else
+		return "Disabled";
+#endif
 	}
 } // namespace casioemu

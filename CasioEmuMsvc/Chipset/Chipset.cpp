@@ -487,16 +487,13 @@ namespace casioemu {
 	}
 
 	void Chipset::RaiseSoftware(size_t index) {
-		if (emulator.hardware_id == HW_TI) {
+		if (emulator.hardware_id == HW_TI) { // && !emulator.modeldef.real_hardware
 			if (index == 0x1) {
-				// Screen changed.
 				ti_screen_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));
-				emulator.chipset.cpu.reg_r[1] = 0;
-				emulator.chipset.cpu.reg_r[0] = 0;
+				// emulator.chipset.cpu.reg_r[1] = 0;
+				// emulator.chipset.cpu.reg_r[0] = 0;
 			}
 			else if (index == 0x2) {
-				if (ti_key != 0)
-					std::cout << "Write Key " << std::hex << (int)ti_key << std::oct << "\n";
 				int i = 500;
 				while ((i > 0) && ti_key == 0) {
 					i -= 24;
@@ -507,10 +504,15 @@ namespace casioemu {
 				ti_key = 0;
 			}
 			else if (index == 0x3) {
-				std::cout << "SWI #3\n";
-				// UART?
-				emulator.chipset.cpu.reg_r[1] = 0;
-				emulator.chipset.cpu.reg_r[0] = 0;
+				auto er0 = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8)),
+					 er2 = (int)(emulator.chipset.cpu.reg_r[2] & 0xff | (emulator.chipset.cpu.reg_r[3] << 8));
+				er0 += 0xb000;
+				auto ta_rsp_len = (mmu.ReadData(er0) | (mmu.ReadData(er0 + 1) << 8)) + 2;
+				std::cout << ta_rsp_len << "\n";
+				std::cout << er2 << "\n";
+				for (size_t i = 0; i < er2; i++) {
+					std::cout << (char)mmu.ReadData(er0 + i);
+				}
 			}
 			else if (index == 0x4) {
 				ti_status_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));

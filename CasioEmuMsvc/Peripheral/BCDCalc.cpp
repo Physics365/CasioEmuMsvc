@@ -13,10 +13,7 @@ namespace casioemu {
 
 		uint8_t data_F400, data_F402, data_F404, data_F405, data_F410, data_F414, data_F415;
 
-		uint8_t data_param1[12];
-		uint8_t data_param2[12];
-		uint8_t data_temp1[12];
-		uint8_t data_temp2[12];
+		uint8_t data_datas[0x20 * 4]{};
 
 		bool F400_write;
 		bool F402_write;
@@ -33,6 +30,26 @@ namespace casioemu {
 		void Reset();
 		void Tick();
 
+		uint16_t CalcAddr(uint8_t base, uint8_t offset) {
+			if (offset > 12) {
+#ifdef DBG
+				std::cout << "???\n";
+#endif
+				return 999;
+			}
+			return base * 0x20 + offset;
+		}
+
+		uint8_t Read(uint16_t d) {
+			if (d == 999)
+				return 0;
+			return data_datas[d];
+		}
+		void Write(uint16_t d, uint8_t v) {
+			if (d != 999)
+				data_datas[d] = v;
+		}
+
 		void GenerateParams();
 		void F405control();
 		void ShiftLeft(int param);
@@ -48,21 +65,26 @@ namespace casioemu {
 		F405_write = false;
 
 		region_bcdcontrol.Setup(
-			0xF400, 1, "BCDCalc/control", this, [](MMURegion* region, size_t offset) {
-			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-			return bcdcalc->data_F400; }, [](MMURegion* region, size_t, uint8_t data) {
-			BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
-			bcdcalc->data_F400 = data;
-			bcdcalc->F400_write = true; }, emulator);
+			0xF400, 1, "BCDCalc/control", this,
+			[](MMURegion* region, size_t offset) {
+				BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
+				return bcdcalc->data_F400;
+			},
+			[](MMURegion* region, size_t, uint8_t data) {
+				BCDCalc* bcdcalc = (BCDCalc*)region->userdata;
+				bcdcalc->data_F400 = data;
+				bcdcalc->F400_write = true;
+			},
+			emulator);
 
 		region_param1.Setup(
-			0xF480, 12, "BCDCalc/param1", data_param1, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+			0xF480, 12, "BCDCalc/param1", data_datas, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 		region_param2.Setup(
-			0xF4A0, 12, "BCDCalc/param2", data_param2, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+			0xF4A0, 12, "BCDCalc/param2", data_datas + 0x20, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 		region_temp1.Setup(
-			0xF4C0, 12, "BCDCalc/temp1", data_temp1, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+			0xF4C0, 12, "BCDCalc/temp1", data_datas + 0x20 * 2, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 		region_temp2.Setup(
-			0xF4E0, 12, "BCDCalc/temp2", data_temp2, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
+			0xF4E0, 12, "BCDCalc/temp2", data_datas + 0x20 * 3, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 
 		region_F410.Setup(0xF410, 1, "BCDCalc/F410", &data_F410, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
 		region_F414.Setup(0xF414, 1, "BCDCalc/F414", &data_F414, MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
@@ -105,13 +127,10 @@ namespace casioemu {
 		return;
 	}
 
-	uint16_t CalcAddr(uint8_t base, uint8_t offset) {
-		return (((uint16_t)base + 0x7A4) << 5) + (uint16_t)offset;
-	}
 	void BCDCalc::F405control() {
 		if (data_mode == 0xFF && param1 == 0) {
 			if (data_c) {
-				data_mode = (emulator.chipset.mmu.ReadData(CalcAddr(0, 0)) & 0x0F) + 0x20;
+				data_mode = (Read(CalcAddr(0, 0)) & 0x0F) + 0x20;
 				data_type_1 = 0;
 				data_type_2 = 0;
 				data_operator = 0x0D;
@@ -141,7 +160,7 @@ namespace casioemu {
 				switch (((data_F405_copy >> 1) & 0x0F) - 1) {
 				case 0:
 					if (data_F405_copy & 0x01) {
-						data_mode = (emulator.chipset.mmu.ReadData(CalcAddr(0, 0)) & 0x0F) + 0x20;
+						data_mode = (Read(CalcAddr(0, 0)) & 0x0F) + 0x20;
 						data_type_1 = 0;
 						data_type_2 = 0;
 						data_operator = 0x0D;
@@ -283,7 +302,7 @@ namespace casioemu {
 						data_operator = 0x0A;
 						break;
 					case 4:
-						data_mode = (emulator.chipset.mmu.ReadData(CalcAddr(0, 0)) & 0x0F) + 0x20;
+						data_mode = (Read(CalcAddr(0, 0)) & 0x0F) + 0x20;
 						data_type_1 = 0x00;
 						data_type_2 = 0x00;
 						data_operator = 0x0D;
@@ -615,8 +634,8 @@ namespace casioemu {
 						break;
 					}
 					if (data_mode == 0x3F) {
-						uint8_t data_tmp = emulator.chipset.mmu.ReadData(CalcAddr(0, 0));
-						emulator.chipset.mmu.WriteData(CalcAddr(0, 0), ((data_tmp ^ data_mode_backup) & 0x0F) ^ data_tmp);
+						uint8_t data_tmp = Read(CalcAddr(0, 0));
+						Write(CalcAddr(0, 0), ((data_tmp ^ data_mode_backup) & 0x0F) ^ data_tmp);
 						if (data_F404_copy) {
 							data_F404_copy--;
 							if (data_b) {
@@ -660,63 +679,63 @@ namespace casioemu {
 		if (data_type_2 == 0) {
 			for (uint8_t offset = 0; offset < 0x0B; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, 0x0B - offset);
-				uint8_t val1 = emulator.chipset.mmu.ReadData((size_t)addr);
-				uint8_t val2 = emulator.chipset.mmu.ReadData((size_t)(addr - 1));
-				emulator.chipset.mmu.WriteData((size_t)addr, (val1 << 4) | (val2 >> 4));
+				uint8_t val1 = Read((size_t)addr);
+				uint8_t val2 = Read((size_t)(addr - 1));
+				Write((size_t)addr, (val1 << 4) | (val2 >> 4));
 			}
 			uint16_t addr = CalcAddr((data_type_1 + 3) & 0x03, 0x0B);
-			uint8_t val2 = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val2 = Read((size_t)addr);
 			addr = CalcAddr(data_type_1, 0);
-			uint8_t val1 = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val1 = Read((size_t)addr);
 			if (param == 0) {
 				val2 = 0;
 			}
-			emulator.chipset.mmu.WriteData((size_t)addr, (val1 << 4) | (val2 >> 4));
+			Write((size_t)addr, (val1 << 4) | (val2 >> 4));
 		}
 		else if (data_type_2 == 1) {
 			for (uint8_t offset = 0; offset < 0x0B; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, 0x0B - offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)(addr - 1));
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				uint8_t val = Read((size_t)(addr - 1));
+				Write((size_t)addr, val);
 			}
 			uint16_t addr = CalcAddr((data_type_1 + 3) & 0x03, 0x0B);
-			uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val = Read((size_t)addr);
 			if (param == 0) {
 				val = 0;
 			}
 			addr = CalcAddr(data_type_1, 0);
-			emulator.chipset.mmu.WriteData((size_t)addr, val);
+			Write((size_t)addr, val);
 		}
 		else if (data_type_2 == 2) {
 			for (uint8_t offset = 0; offset < 0x0A; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, 0x09 - offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
-				emulator.chipset.mmu.WriteData((size_t)(addr + 2), val);
+				uint8_t val = Read((size_t)addr);
+				Write((size_t)(addr + 2), val);
 			}
 			for (int i = 0; i < 2; i++) {
 				uint16_t addr = CalcAddr((data_type_1 + 3) & 0x03, i + 0x0A);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t val = Read((size_t)addr);
 				if (param == 0) {
 					val = 0;
 				}
 				addr = CalcAddr(data_type_1, i);
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				Write((size_t)addr, val);
 			}
 		}
 		else if (data_type_2 == 3) {
 			for (uint8_t offset = 0; offset < 0x08; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, 0x07 - offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
-				emulator.chipset.mmu.WriteData((size_t)(addr + 4), val);
+				uint8_t val = Read((size_t)addr);
+				Write((size_t)(addr + 4), val);
 			}
 			for (int i = 0; i < 4; i++) {
 				uint16_t addr = CalcAddr((data_type_1 + 3) & 0x03, i + 0x08);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t val = Read((size_t)addr);
 				if (param == 0) {
 					val = 0;
 				}
 				addr = CalcAddr(data_type_1, i);
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				Write((size_t)addr, val);
 			}
 		}
 	}
@@ -727,64 +746,64 @@ namespace casioemu {
 		if (data_type_2 == 0) {
 			for (uint8_t offset = 0; offset < 0x0B; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t val1 = emulator.chipset.mmu.ReadData((size_t)addr);
-				uint8_t val2 = emulator.chipset.mmu.ReadData((size_t)(addr + 1));
-				emulator.chipset.mmu.WriteData((size_t)addr, (val2 << 4) | (val1 >> 4));
+				uint8_t val1 = Read((size_t)addr);
+				uint8_t val2 = Read((size_t)(addr + 1));
+				Write((size_t)addr, (val2 << 4) | (val1 >> 4));
 			}
 			uint16_t addr = CalcAddr(data_type_1, 0x0B);
-			uint8_t val1 = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val1 = Read((size_t)addr);
 			addr = CalcAddr((data_type_1 + 1) & 0x03, 0);
-			uint8_t val2 = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val2 = Read((size_t)addr);
 			if (param == 0) {
 				val2 = 0;
 			}
 			addr = CalcAddr(data_type_1, 0x0B);
-			emulator.chipset.mmu.WriteData((size_t)addr, (val2 << 4) | (val1 >> 4));
+			Write((size_t)addr, (val2 << 4) | (val1 >> 4));
 		}
 		else if (data_type_2 == 1) {
 			for (uint8_t offset = 0; offset < 0x0B; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)(addr + 1));
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				uint8_t val = Read((size_t)(addr + 1));
+				Write((size_t)addr, val);
 			}
 			uint16_t addr = CalcAddr((data_type_1 + 1) & 0x03, 0);
-			uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+			uint8_t val = Read((size_t)addr);
 			if (param == 0) {
 				val = 0;
 			}
 			addr = CalcAddr(data_type_1, 0x0B);
-			emulator.chipset.mmu.WriteData((size_t)addr, val);
+			Write((size_t)addr, val);
 		}
 		else if (data_type_2 == 2) {
 			for (uint8_t offset = 0; offset < 0x0A; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)(addr + 2));
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				uint8_t val = Read((size_t)(addr + 2));
+				Write((size_t)addr, val);
 			}
 			for (int i = 0x0A; i < 0x0C; i++) {
 				uint16_t addr = CalcAddr((data_type_1 + 1) & 0x03, i - 0x0A);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t val = Read((size_t)addr);
 				if (param == 0) {
 					val = 0;
 				}
 				addr = CalcAddr(data_type_1, i);
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				Write((size_t)addr, val);
 			}
 		}
 		else if (data_type_2 == 3) {
 			for (uint8_t offset = 0; offset < 0x08; offset++) {
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)(addr + 4));
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				uint8_t val = Read((size_t)(addr + 4));
+				Write((size_t)addr, val);
 			}
 			for (int i = 0x08; i < 0x0C; i++) {
 				uint16_t addr = CalcAddr((data_type_1 + 1) & 0x03, i - 0x08);
-				uint8_t val = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t val = Read((size_t)addr);
 				if (param == 0) {
 					val = 0;
 				}
 				addr = CalcAddr(data_type_1, i);
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				Write((size_t)addr, val);
 			}
 		}
 	}
@@ -869,9 +888,9 @@ namespace casioemu {
 			for (int i = 0; i * 2 < data_F402_copy; i++) {
 				offset = i * 4;
 				uint16_t addr1 = CalcAddr(data_type_1, offset);
-				val1 = (uint16_t)emulator.chipset.mmu.ReadData((size_t)(addr1 + 1)) * 0x100 + (uint16_t)emulator.chipset.mmu.ReadData((size_t)addr1);
+				val1 = (uint16_t)Read((size_t)(addr1 + 1)) * 0x100 + (uint16_t)Read((size_t)addr1);
 				uint16_t addr2 = CalcAddr(data_type_2, offset);
-				val2 = (uint16_t)emulator.chipset.mmu.ReadData((size_t)(addr2 + 1)) * 0x100 + (uint16_t)emulator.chipset.mmu.ReadData((size_t)addr2);
+				val2 = (uint16_t)Read((size_t)(addr2 + 1)) * 0x100 + (uint16_t)Read((size_t)addr2);
 				if (data_operator == 2) {
 					flag = 1;
 				}
@@ -888,14 +907,14 @@ namespace casioemu {
 				}
 				if (storeresults) {
 					uint16_t storeaddr = CalcAddr(data_type_1, offset);
-					emulator.chipset.mmu.WriteData((size_t)storeaddr, (uint8_t)(res & 0xFF));
-					emulator.chipset.mmu.WriteData((size_t)(storeaddr + 1), (uint8_t)((res >> 8) & 0xFF));
+					Write((size_t)storeaddr, (uint8_t)(res & 0xFF));
+					Write((size_t)(storeaddr + 1), (uint8_t)((res >> 8) & 0xFF));
 				}
 				offset += 2;
 				addr1 = CalcAddr(data_type_1, offset);
 				addr2 = CalcAddr(data_type_2, offset);
-				val1 = (uint16_t)emulator.chipset.mmu.ReadData((size_t)(addr1 + 1)) * 0x100 + (uint16_t)emulator.chipset.mmu.ReadData((size_t)addr1);
-				val2 = (uint16_t)emulator.chipset.mmu.ReadData((size_t)(addr2 + 1)) * 0x100 + (uint16_t)emulator.chipset.mmu.ReadData((size_t)addr2);
+				val1 = (uint16_t)Read((size_t)(addr1 + 1)) * 0x100 + (uint16_t)Read((size_t)addr1);
+				val2 = (uint16_t)Read((size_t)(addr2 + 1)) * 0x100 + (uint16_t)Read((size_t)addr2);
 				res = Calculate(tmp, (uint32_t)val1, (uint32_t)val2, flag);
 				if (i * 2 + 1 != data_F402_copy) {
 					tmp = (res >> 16) & 1;
@@ -910,12 +929,12 @@ namespace casioemu {
 				if (storeresults) {
 					uint16_t storeaddr = CalcAddr(data_type_1, offset);
 					if (i * 2 + 1 == data_F402_copy) {
-						emulator.chipset.mmu.WriteData((size_t)storeaddr, 0);
-						emulator.chipset.mmu.WriteData((size_t)(storeaddr + 1), 0);
+						Write((size_t)storeaddr, 0);
+						Write((size_t)(storeaddr + 1), 0);
 					}
 					else {
-						emulator.chipset.mmu.WriteData((size_t)storeaddr, (uint8_t)(res & 0xFF));
-						emulator.chipset.mmu.WriteData((size_t)(storeaddr + 1), (uint8_t)((res >> 8) & 0xFF));
+						Write((size_t)storeaddr, (uint8_t)(res & 0xFF));
+						Write((size_t)(storeaddr + 1), (uint8_t)((res >> 8) & 0xFF));
 					}
 				}
 			}
@@ -946,23 +965,23 @@ namespace casioemu {
 			uint16_t addr;
 			for (uint8_t offset = 1; offset < 0x0C; offset++) {
 				addr = CalcAddr(data_type_1, offset);
-				emulator.chipset.mmu.WriteData(addr, 0);
+				Write(addr, 0);
 			}
 			addr = CalcAddr(data_type_1, 0);
 			if (data_type_2 == 3) {
-				emulator.chipset.mmu.WriteData((size_t)addr, 5);
+				Write((size_t)addr, 5);
 			}
 			else {
-				emulator.chipset.mmu.WriteData((size_t)addr, data_type_2);
+				Write((size_t)addr, data_type_2);
 			}
 			break;
 		case 3:
 			uint8_t val;
 			for (uint8_t offset = 0; offset < 0x0C; offset++) {
 				addr = CalcAddr(data_type_2, offset);
-				val = emulator.chipset.mmu.ReadData((size_t)addr);
+				val = Read((size_t)addr);
 				addr = CalcAddr(data_type_1, offset);
-				emulator.chipset.mmu.WriteData((size_t)addr, val);
+				Write((size_t)addr, val);
 			}
 			break;
 		case 4:
@@ -983,7 +1002,7 @@ namespace casioemu {
 				if (flag == false)
 					break;
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t value = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t value = Read((size_t)addr);
 				if (offset < data_F402_copy * 2) {
 					if ((value & 0xF0) != 0) {
 						flag = false;
@@ -1009,7 +1028,7 @@ namespace casioemu {
 				if (flag == false)
 					break;
 				uint16_t addr = CalcAddr(data_type_1, offset);
-				uint8_t value = emulator.chipset.mmu.ReadData((size_t)addr);
+				uint8_t value = Read((size_t)addr);
 				if (offset < data_F402_copy * 2) {
 					if ((value & 0x0F) != 0) {
 						flag = false;
