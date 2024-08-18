@@ -13,3 +13,9 @@ inline void rtrim(std::string& s) {
 	}).base(),
 		s.end());
 }
+inline std::string trim(const std::string& str) {
+	std::string fin = str;
+	ltrim(fin);
+	rtrim(fin);
+	return fin;
+}

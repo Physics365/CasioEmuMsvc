@@ -1,12 +1,13 @@
 ﻿#include "ui.hpp"
-#include "Chipset/Chipset.hpp"
-#include "Chipset/MMU.hpp"
 #include "CallAnalysis.h"
 #include "CasioData.h"
+#include "Chipset/Chipset.hpp"
+#include "Chipset/MMU.hpp"
 #include "CodeViewer.hpp"
 #include "Editors.h"
 #include "HwController.h"
 #include "Injector.hpp"
+#include "LabelFile.h"
 #include "LabelViewer.h"
 #include "MemBreakpoint.hpp"
 #include "VariableWindow.h"
@@ -23,6 +24,8 @@ casioemu::MMU* me_mmu = 0;
 static SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 static SDL_Window* window = 0;
 SDL_Renderer* renderer = 0;
+
+std::vector<Label> g_labels;
 
 CodeViewer* code_viewer = 0;
 Injector* injector = 0;
@@ -128,9 +131,11 @@ int test_gui(bool* guiCreated) {
 	ImGui_ImplSDLRenderer2_Init(renderer);
 	if (guiCreated)
 		*guiCreated = true;
-	while (!m_emu || !me_mmu)
+	while (!me_mmu)
 		std::this_thread::sleep_for(std::chrono::microseconds(1));
-	std::this_thread::sleep_for(std::chrono::microseconds(100));
+
+	g_labels = parseFile(m_emu->GetModelFilePath("labels"));
+
 	for (auto item : std::initializer_list<UIWindow*>{
 			 new VariableWindow(),
 			 new HwController(),

@@ -367,6 +367,7 @@
     <ClInclude Include="Chipset\MMURegion.hpp" />
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="Containers\ConcurrentObject.h" />
+    <ClInclude Include="Ext\LabelFile.h" />
     <ClInclude Include="Gui\CallAnalysis.h" />
     <ClInclude Include="Gui\CasioData.h" />
     <ClInclude Include="Gui\CwiiHelp.h" />

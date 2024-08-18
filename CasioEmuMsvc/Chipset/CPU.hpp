@@ -131,7 +131,7 @@ namespace casioemu {
 		bool GetMasterInterruptEnable();
 		std::string GetBacktrace() const;
 
-	private:
+
 #ifdef DBG
 		struct StackFrame {
 			bool lr_pushed;
@@ -141,7 +141,7 @@ namespace casioemu {
 		};
 		ConcurrentObject<std::vector<StackFrame>> stack;
 #endif
-
+	private:
 		uint16_t Fetch();
 
 		enum OpcodeHint {

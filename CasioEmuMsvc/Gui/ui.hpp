@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Chipset/MMU.hpp"
 #include "Emulator.hpp"
+#include "LabelFile.h"
 #include "imgui/imgui.h"
 int test_gui(bool* guiCreated);
 void gui_cleanup();
@@ -8,6 +9,7 @@ void gui_loop();
 extern char* n_ram_buffer;
 extern casioemu::MMU* me_mmu;
 extern casioemu::Emulator* m_emu;
+extern std::vector<Label> g_labels;
 class UIWindow {
 public:
 	UIWindow(const char* name) : name(name) {}
@@ -26,4 +28,4 @@ public:
 	}
 	virtual void RenderCore() = 0;
 };
-constexpr ImGuiTableFlags pretty_table = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Reorderable ;
+constexpr ImGuiTableFlags pretty_table = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Reorderable;

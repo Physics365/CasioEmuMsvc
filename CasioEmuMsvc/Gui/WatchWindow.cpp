@@ -13,6 +13,7 @@
 
 #include "Config.hpp"
 #include "Models.h"
+#include <iomanip>
 
 void WatchWindow::PrepareRX() {
 	for (int i = 0; i < 16; i++) {
@@ -60,7 +61,7 @@ void WatchWindow::ShowRX() {
 	ImGui::SameLine();
 	show_sfr(reg_psw, "PSW: ", 5, 2);
 	ImGui::SameLine();
-	show_sfr(reg_dsr, "DSR: ", 5, 2);
+	show_sfr(reg_dsr, "DSR: ", 6, 2);
 }
 void WatchWindow::ModRX() {
 	char id[10];
@@ -99,7 +100,7 @@ void WatchWindow::ModRX() {
 	ImGui::SameLine();
 	show_sfr(reg_psw, "PSW: ", 5, 2);
 	ImGui::SameLine();
-	show_sfr(reg_dsr, "DSR: ", 5, 2);
+	show_sfr(reg_dsr, "DSR: ", 6, 2);
 }
 
 void WatchWindow::UpdateRX() {
@@ -112,7 +113,44 @@ void WatchWindow::UpdateRX() {
 	m_emu->chipset.cpu.reg_sp = (uint16_t)strtol((char*)reg_sp, nullptr, 16);
 	m_emu->chipset.cpu.reg_psw = (uint16_t)strtol((char*)reg_psw, nullptr, 16);
 }
+struct SymbolAddr {
+public:
+	uint32_t addr;
+};
+inline static std::ostream& operator<<(std::ostream& os, SymbolAddr ad) {
+	auto iter = std::find_if(g_labels.begin(), g_labels.end(), [&](Label& dat) { return dat.address == ad.addr; });
+	if (iter == g_labels.end())
+	{
+		return os  << ad.addr;
+	}
+	else {
+		return os << iter->name;
+	}
+}
+inline std::string GetBacktrace() {
+	std::stringstream output;
+	output << std::hex << std::setfill('0') << std::uppercase;
+	auto stack = m_emu->chipset.cpu.stack.get_const();
+	for (casioemu::CPU::StackFrame frame : *stack) {
+		output << "  function "
+			   << std::setw(6) << SymbolAddr{frame.new_pc}
+			   << " returns to " << std::setw(6);
+		if (frame.lr_pushed) {
+			output << SymbolAddr{frame.lr};
 
+			output << " - lr pushed at "
+				   << std::setw(4) << frame.lr_push_address;
+		}
+		else {
+			output << (((size_t)m_emu->chipset.cpu.reg_lcsr) << 16 | m_emu->chipset.cpu.reg_lr);
+		}
+		if (frame.is_jump) {
+			output << " (called by pop pc)";
+		}
+		output << '\n';
+	}
+	return output.str();
+}
 void WatchWindow::RenderCore() {
 	char_width = ImGui::CalcTextSize("F").x;
 	casioemu::Chipset& chipset = m_emu->chipset;
@@ -136,7 +174,7 @@ void WatchWindow::RenderCore() {
 	ImGui::Separator();
 	static int range = 64;
 	ImGui::BeginChild("##stack_trace", ImVec2(0, ImGui::GetWindowHeight() / 2));
-	std::string s = chipset.cpu.GetBacktrace();
+	std::string s = GetBacktrace();
 	ImGui::InputTextMultiline("##as", (char*)s.c_str(), s.size(), ImVec2(ImGui::GetWindowWidth(), -1), ImGuiInputTextFlags_ReadOnly);
 	ImGui::EndChild();
 	ImGui::BeginChild("##stack_view");

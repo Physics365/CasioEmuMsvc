@@ -7,16 +7,14 @@ namespace casioemu {
 	inline constexpr size_t GetRamBaseAddr(HardwareId hid) {
 		if (hid == HW_TI)
 			return 0xB000;
-		return hid == HW_ES_PLUS ? 0x8000 : hid == HW_CLASSWIZ ? 0xD000
-										: hid == HW_FX_5800P   ? 0x8000
-															   : 0x9000;
+		return (hid == HW_FX_5800P || hid == HW_ES_PLUS) ? 0x8000 : hid == HW_CLASSWIZ ? 0xD000
+																					   : 0x9000;
 	}
 	inline constexpr size_t GetRamSize(HardwareId hid) {
 		if (hid == HW_TI)
 			return 0xF000 - 0xB000;
-		return hid == HW_ES_PLUS ? 0x0E00 : hid == HW_CLASSWIZ ? 0x2000
-										: hid == HW_FX_5800P   ? 0xf000 - 0x8000
-															   : 0x6000;
+		return (hid == HW_FX_5800P || hid == HW_ES_PLUS) ? 0x0E00 : hid == HW_CLASSWIZ ? 0x2000
+																					   : 0x6000;
 	}
 	inline std::vector<MemoryEditor::MarkedSpan> GetCommonMemLabels(HardwareId hid) {
 		int i = 0;
