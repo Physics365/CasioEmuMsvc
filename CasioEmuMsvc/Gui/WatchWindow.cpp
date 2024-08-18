@@ -1,8 +1,8 @@
 ﻿#include "WatchWindow.hpp"
 #include "Chipset//Chipset.hpp"
 #include "Chipset/CPU.hpp"
-#include "Peripheral/BatteryBackedRAM.hpp"
 #include "CodeViewer.hpp"
+#include "Peripheral/BatteryBackedRAM.hpp"
 #include "Ui.hpp"
 #include "imgui/imgui.h"
 #include <cassert>
@@ -14,17 +14,16 @@
 #include "Config.hpp"
 #include "Models.h"
 
-
 void WatchWindow::PrepareRX() {
 	for (int i = 0; i < 16; i++) {
 		sprintf((char*)reg_rx[i], "%02x", m_emu->chipset.cpu.reg_r[i] & 0x0ff);
 	}
 	sprintf(reg_pc, "%05x", (uint32_t)(m_emu->chipset.cpu.reg_csr << 16) | m_emu->chipset.cpu.reg_pc);
 	sprintf(reg_lr, "%05x", (uint32_t)(m_emu->chipset.cpu.reg_lcsr << 16) | m_emu->chipset.cpu.reg_lr);
-	sprintf(reg_sp, "%04x", m_emu->chipset.cpu.reg_sp |0);
-	sprintf(reg_ea, "%04x", m_emu->chipset.cpu.reg_ea |0);
-	sprintf(reg_psw, "%02x", m_emu->chipset.cpu.reg_psw |0);
-	sprintf(reg_dsr, "%02x", m_emu->chipset.cpu.reg_dsr |0);
+	sprintf(reg_sp, "%04x", m_emu->chipset.cpu.reg_sp | 0);
+	sprintf(reg_ea, "%04x", m_emu->chipset.cpu.reg_ea | 0);
+	sprintf(reg_psw, "%02x", m_emu->chipset.cpu.reg_psw | 0);
+	sprintf(reg_dsr, "%02x", m_emu->chipset.cpu.reg_dsr | 0);
 }
 
 void WatchWindow::ShowRX() {
@@ -44,7 +43,6 @@ void WatchWindow::ShowRX() {
 					   m_emu->chipset.cpu.reg_r[i];
 		ImGui::Text("%04x ", val);
 	}
-
 	auto show_sfr = ([&](char* ptr, const char* label, int i, int width = 4) {
 		ImGui::TextColored(ImVec4(0, 200, 0, 255), label);
 		ImGui::SameLine();
@@ -52,9 +50,48 @@ void WatchWindow::ShowRX() {
 		ImGui::SetNextItemWidth(char_width * width + 5);
 		ImGui::Text(ptr);
 	});
-	show_sfr(reg_pc, "PC: ", 1);
+	show_sfr(reg_pc, "PC: ", 1, 6);
 	ImGui::SameLine();
-	show_sfr(reg_lr, "LR: ", 2);
+	show_sfr(reg_lr, "LR: ", 2, 6);
+	ImGui::SameLine();
+	show_sfr(reg_ea, "EA: ", 3);
+	ImGui::SameLine();
+	show_sfr(reg_sp, "SP: ", 4);
+	ImGui::SameLine();
+	show_sfr(reg_psw, "PSW: ", 5, 2);
+	ImGui::SameLine();
+	show_sfr(reg_dsr, "DSR: ", 5, 2);
+}
+void WatchWindow::ModRX() {
+	char id[10];
+	ImGui::TextColored(ImVec4(0, 200, 0, 255), "RXn: ");
+	for (int i = 0; i < 16; i++) {
+		ImGui::SameLine();
+		sprintf(id, "##data%d", i);
+		ImGui::SetNextItemWidth(char_width * 3);
+		ImGui::InputText(id, (char*)&reg_rx[i][0], 3, ImGuiInputTextFlags_CharsHexadecimal);
+	}
+	// ERn
+	// 不可编辑，必须通过Rn编辑
+	ImGui::Text("ERn: ");
+	for (int i = 0; i < 16; i += 2) {
+		ImGui::SameLine();
+		uint16_t val = m_emu->chipset.cpu.reg_r[i + 1]
+						   << 8 |
+					   m_emu->chipset.cpu.reg_r[i];
+		ImGui::Text("%04x ", val);
+	}
+
+	auto show_sfr = ([&](char* ptr, const char* label, int i, int width = 4) {
+		ImGui::TextColored(ImVec4(0, 200, 0, 255), label);
+		ImGui::SameLine();
+		sprintf(id, "##sfr%d", i);
+		ImGui::SetNextItemWidth(char_width * width + 2);
+		ImGui::InputText(id, (char*)ptr, width + 1, ImGuiInputTextFlags_CharsHexadecimal);
+	});
+	show_sfr(reg_pc, "PC: ", 1, 6);
+	ImGui::SameLine();
+	show_sfr(reg_lr, "LR: ", 2, 6);
 	ImGui::SameLine();
 	show_sfr(reg_ea, "EA: ", 3);
 	ImGui::SameLine();
@@ -79,9 +116,21 @@ void WatchWindow::UpdateRX() {
 void WatchWindow::RenderCore() {
 	char_width = ImGui::CalcTextSize("F").x;
 	casioemu::Chipset& chipset = m_emu->chipset;
-	ImGui::BeginChild("##reg_trace", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), false, 0);
+	ImGui::BeginChild("##reg_trace", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4 + ImGui::GetStyle().ItemInnerSpacing.y * 4), false, 0);
 	PrepareRX();
-	ShowRX();
+	if (!m_emu->GetPaused()) {
+		ShowRX();
+		if (ImGui::Button("Pause")) {
+			m_emu->SetPaused(1);
+		}
+	}
+	else {
+		ModRX();
+		UpdateRX();
+		if (ImGui::Button("Continue")) {
+			m_emu->SetPaused(0);
+		}
+	}
 
 	ImGui::EndChild();
 	ImGui::Separator();

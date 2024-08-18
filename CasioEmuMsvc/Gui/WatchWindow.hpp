@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Emulator.hpp"
-#include "hex.hpp"
 #include "Ui.hpp"
+#include "hex.hpp"
 #include <cstdint>
 
 class WatchWindow : public UIWindow {
@@ -20,6 +20,7 @@ public:
 	void ShowRX();
 
 	void PrepareRX();
+	void ModRX();
 
 	void UpdateRX();
 };

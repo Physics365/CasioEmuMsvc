@@ -100,7 +100,7 @@ void HwController::RenderCore() {
 	}
 
 	static int irq = 0;
-	ImGui::InputInt("",&irq);
+	ImGui::InputInt("##0d000721",&irq);
 	if (ImGui::Button("中断")) {
 		m_emu->chipset.RaiseMaskable(irq);
 	}
