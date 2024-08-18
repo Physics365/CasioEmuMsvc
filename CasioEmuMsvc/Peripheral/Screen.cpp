@@ -33,7 +33,7 @@
 #include <ctime>   // for std::time
 #include <vector>
 
-constexpr uint8_t reverse_bits(uint8_t n) {
+inline constexpr uint8_t reverse_bits(uint8_t n) {
 	uint8_t reversed = 0;
 	for (int i = 0; i < 8; ++i) {
 		reversed |= ((n >> i) & 1) << (7 - i);
@@ -42,7 +42,7 @@ constexpr uint8_t reverse_bits(uint8_t n) {
 }
 
 // constexpr 生成查找表
-constexpr std::array<uint8_t, 256> generate_lookup_table() {
+inline constexpr std::array<uint8_t, 256> generate_lookup_table() {
 	std::array<uint8_t, 256> table = {};
 	for (int i = 0; i < 256; ++i) {
 		table[i] = reverse_bits(static_cast<uint8_t>(i));
@@ -53,7 +53,7 @@ constexpr std::array<uint8_t, 256> generate_lookup_table() {
 // 定义查找表
 constexpr auto bit_lookup_table = generate_lookup_table();
 
-void fillRandomData(unsigned char* buf, size_t size) {
+inline void fillRandomData(unsigned char* buf, size_t size) {
 	std::srand(static_cast<unsigned int>(SDL_GetPerformanceCounter())); // 使用当前时间作为随机种子
 	std::generate(buf, buf + size, []() {
 		return static_cast<unsigned char>(std::rand() % 256); // 生成0到255之间的随机数

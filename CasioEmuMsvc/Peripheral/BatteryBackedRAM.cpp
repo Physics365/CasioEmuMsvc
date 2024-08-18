@@ -10,6 +10,13 @@
 #include <cstring>
 #include <fstream>
 
+inline void fillRandomData(unsigned char* buf, size_t size) {
+	std::srand(static_cast<unsigned int>(SDL_GetPerformanceCounter())); // 使用当前时间作为随机种子
+	std::generate(buf, buf + size, []() {
+		return static_cast<unsigned char>(std::rand() % 256); // 生成0到255之间的随机数
+	});
+}
+
 namespace casioemu {
 	class BatteryBackedRAM : public Peripheral {
 		MMURegion region, region_2, region_3, region_4, region_5;
@@ -33,7 +40,7 @@ namespace casioemu {
 			ram_size += 0x100;
 
 		ram_buffer = new uint8_t[ram_size];
-		memset(ram_buffer, 0, ram_size);
+		fillRandomData(ram_buffer, ram_size);
 
 		ram_file_requested = false;
 		if (emulator.argv_map.find("ram") != emulator.argv_map.end()) {
@@ -49,6 +56,7 @@ namespace casioemu {
 			"BatteryBackedRAM", ram_buffer, [](MMURegion* region, size_t offset) { return ((uint8_t*)region->userdata)[offset - region->base]; }, [](MMURegion* region, size_t offset, uint8_t data) { ((uint8_t*)region->userdata)[offset - region->base] = data; }, emulator);
 		if (emulator.hardware_id == HW_FX_5800P) {
 			pram_buffer = new uint8_t[0x8000];
+			fillRandomData(pram_buffer, 0x8000);
 			region_5.Setup(
 				0x40000,
 				0x8000,
