@@ -65,6 +65,77 @@ namespace casioemu {
 	}
 
 	void Chipset::ConstructInterruptSFR() {
+		if (emulator.hardware_id == HW_TI) {
+			WDT_enabled = true;
+			EffectiveMICount = 59;
+			MaskableInterrupts = new InterruptSource[59];
+			// ML620Q418A EXInINT
+			for (size_t i = 0; i < 7; i++)
+				MaskableInterrupts[i].Setup(5, emulator);
+			for (size_t i = 0; i < 8; i++)
+				MaskableInterrupts[7 + i].Setup(5 +3 + i, emulator);
+			for (size_t i = 15; i < 55; i++)
+				MaskableInterrupts[i].Setup(5, emulator);
+			MaskableInterrupts[55].Setup(53+3, emulator);
+			MaskableInterrupts[56].Setup(54+3, emulator);
+			MaskableInterrupts[57].Setup(55+3, emulator);
+			for (size_t i = 58; i < 59; i++)
+				MaskableInterrupts[i].Setup(5, emulator);
+			region_int_mask.Setup(
+				0xF010, 8, "Chipset/InterruptMask", this,
+				[](MMURegion* region, size_t offset) {
+					offset -= region->base;
+					Chipset* chipset = (Chipset*)region->userdata;
+					return (uint8_t)((chipset->data_int_mask >> (offset * 8)) & 0xFF);
+				},
+				[](MMURegion* region, size_t offset, uint8_t data) {
+					offset -= region->base;
+					Chipset* chipset = (Chipset*)region->userdata;
+					size_t mask = (static_cast<size_t>(1) << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
+					chipset->data_int_mask = (chipset->data_int_mask & (~(static_cast<unsigned long long>(0xFF) << (offset * 8)))) | (static_cast<unsigned long long>(data) << (offset * 8));
+					chipset->data_int_mask &= mask;
+					for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
+						chipset->MaskableInterrupts[i].SetEnabled(chipset->data_int_mask & (static_cast<unsigned long long>(1) << (i + 1)));
+					}
+					if (chipset->data_int_mask & 1) {
+						if (chipset->GetInterruptPendingSFR(4))
+							chipset->RaiseNonmaskable();
+					}
+					else {
+						chipset->ResetNonmaskable();
+					}
+				},
+				emulator);
+			region_int_pending.Setup(
+				0xF010 + 0x8, 0x8, "Chipset/InterruptPending", this,
+				[](MMURegion* region, size_t offset) {
+					offset -= region->base;
+					Chipset* chipset = (Chipset*)region->userdata;
+					return (uint8_t)((chipset->data_int_pending >> (offset * 8)) & 0xFF);
+				},
+				[](MMURegion* region, size_t offset, uint8_t data) {
+					offset -= region->base;
+					Chipset* chipset = (Chipset*)region->userdata;
+					size_t mask = (1 << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
+					chipset->data_int_pending = (chipset->data_int_pending & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
+					chipset->data_int_pending &= mask;
+					for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
+						if (chipset->data_int_pending & (1 << (i + 1)))
+							chipset->MaskableInterrupts[i].TryRaise();
+						else
+							chipset->MaskableInterrupts[i].ResetInt();
+					}
+					if (chipset->data_int_pending & 1) {
+						if (chipset->data_int_mask & 1)
+							chipset->RaiseNonmaskable();
+					}
+					else {
+						chipset->ResetNonmaskable();
+					}
+				},
+				emulator);
+			return;
+		}
 		EffectiveMICount = emulator.hardware_id == HW_ES_PLUS ? 12 : emulator.hardware_id == HW_CLASSWIZ ? 17
 																										 : 21;
 		MaskableInterrupts = new InterruptSource[EffectiveMICount];
@@ -74,48 +145,61 @@ namespace casioemu {
 		isMIBlocked = false;
 
 		// WDTINT is unused
+		auto mask_len = 4;
 		region_int_mask.Setup(
-			0xF010, 4, "Chipset/InterruptMask", this, [](MMURegion* region, size_t offset) {
-			offset -= region->base;
-			Chipset *chipset = (Chipset*)region->userdata;
-			return (uint8_t)((chipset->data_int_mask >> (offset * 8)) & 0xFF); }, [](MMURegion* region, size_t offset, uint8_t data) {
-			offset -= region->base;
-			Chipset *chipset = (Chipset*)region->userdata;
-			size_t mask = (1 << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
-			chipset->data_int_mask = (chipset->data_int_mask & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
-			chipset->data_int_mask &= mask;
-			for(size_t i = 0; i < chipset->EffectiveMICount; i++) {
-				chipset->MaskableInterrupts[i].SetEnabled(chipset->data_int_mask & (1 << (i + 1)));
-			}
-			if(chipset->data_int_mask & 1) {
-				if(chipset->GetInterruptPendingSFR(4))
-					chipset->RaiseNonmaskable();
-			} else {
-				chipset->ResetNonmaskable();
-			} }, emulator);
+			0xF010, mask_len, "Chipset/InterruptMask", this,
+			[](MMURegion* region, size_t offset) {
+				offset -= region->base;
+				Chipset* chipset = (Chipset*)region->userdata;
+				return (uint8_t)((chipset->data_int_mask >> (offset * 8)) & 0xFF);
+			},
+			[](MMURegion* region, size_t offset, uint8_t data) {
+				offset -= region->base;
+				Chipset* chipset = (Chipset*)region->userdata;
+				size_t mask = (static_cast<size_t>(1) << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
+				chipset->data_int_mask = (chipset->data_int_mask & (~(static_cast<unsigned long long>(0xFF) << (offset * 8)))) | (static_cast<unsigned long long>(data) << (offset * 8));
+				chipset->data_int_mask &= mask;
+				for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
+					chipset->MaskableInterrupts[i].SetEnabled(chipset->data_int_mask & (static_cast<unsigned long long>(1) << (i + 1)));
+				}
+				if (chipset->data_int_mask & 1) {
+					if (chipset->GetInterruptPendingSFR(4))
+						chipset->RaiseNonmaskable();
+				}
+				else {
+					chipset->ResetNonmaskable();
+				}
+			},
+			emulator);
 
 		region_int_pending.Setup(
-			0xF014, 4, "Chipset/InterruptPending", this, [](MMURegion* region, size_t offset) {
-			offset -= region->base;
-			Chipset *chipset = (Chipset*)region->userdata;
-			return (uint8_t)((chipset->data_int_pending >> (offset * 8)) & 0xFF); }, [](MMURegion* region, size_t offset, uint8_t data) {
-			offset -= region->base;
-			Chipset *chipset = (Chipset*)region->userdata;
-			size_t mask = (1 << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
-			chipset->data_int_pending = (chipset->data_int_pending & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
-			chipset->data_int_pending &= mask;
-			for(size_t i = 0; i < chipset->EffectiveMICount; i++) {
-				if(chipset->data_int_pending & (1 << (i + 1)))
-					chipset->MaskableInterrupts[i].TryRaise();
-				else
-					chipset->MaskableInterrupts[i].ResetInt();
-			}
-			if(chipset->data_int_pending & 1) {
-				if(chipset->data_int_mask & 1)
-					chipset->RaiseNonmaskable();
-			} else {
-				chipset->ResetNonmaskable();
-			} }, emulator);
+			0xF010 + mask_len, mask_len, "Chipset/InterruptPending", this,
+			[](MMURegion* region, size_t offset) {
+				offset -= region->base;
+				Chipset* chipset = (Chipset*)region->userdata;
+				return (uint8_t)((chipset->data_int_pending >> (offset * 8)) & 0xFF);
+			},
+			[](MMURegion* region, size_t offset, uint8_t data) {
+				offset -= region->base;
+				Chipset* chipset = (Chipset*)region->userdata;
+				size_t mask = (1 << (chipset->EffectiveMICount + 1)) - (chipset->WDT_enabled ? 1 : 2);
+				chipset->data_int_pending = (chipset->data_int_pending & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
+				chipset->data_int_pending &= mask;
+				for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
+					if (chipset->data_int_pending & (1 << (i + 1)))
+						chipset->MaskableInterrupts[i].TryRaise();
+					else
+						chipset->MaskableInterrupts[i].ResetInt();
+				}
+				if (chipset->data_int_pending & 1) {
+					if (chipset->data_int_mask & 1)
+						chipset->RaiseNonmaskable();
+				}
+				else {
+					chipset->ResetNonmaskable();
+				}
+			},
+			emulator);
 	}
 
 	void Chipset::ResetInterruptSFR() {
@@ -138,8 +222,66 @@ namespace casioemu {
 
 		ResetClockGenerator();
 		if (emulator.hardware_id == HW_TI) {
+			region_FCON.Setup(
+				0xF002, 1, "ClockGenerator/FCON0", this,
+				[](MMURegion* region, size_t) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					return chipset->data_FCON;
+				},
+				[](MMURegion* region, size_t, uint8_t data) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					uint8_t OSCLK = data & 0x7;
+					chipset->data_FCON = data & 0b11111;
+					chipset->ClockDiv = static_cast<int>(std::pow(2, OSCLK == 0 ? OSCLK : OSCLK - 1));
+					// chipset->LSCLKMode = (chipset->data_FCON & 0x03) == 1 ? true : false;
+				},
+				emulator);
+			region_FCON1.Setup(
+				0xF003, 1, "ClockGenerator/FCON1", this,
+				[](MMURegion* region, size_t) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					return chipset->data_FCON1;
+				},
+				[](MMURegion* region, size_t, uint8_t data) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					chipset->data_FCON1 = data & 0b11010111;
+					chipset->LSCLKMode = chipset->data_FCON & 0x1;
+				},
+				emulator);
 			region_LTBR.Setup(
-				0xF060, 1, "TimerBaseCounter/LTBR", this, [](MMURegion* region, size_t) { return (uint8_t)1; }, [](MMURegion* region, size_t, uint8_t data) {}, emulator);
+				0xf060, 1, "TimerBaseCounter/LTBR", this,
+				[](MMURegion* region, size_t) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					return chipset->data_LTBR;
+				},
+				[](MMURegion* region, size_t, uint8_t data) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					chipset->data_LTBR = 0;
+					chipset->LTBCReset = true;
+					chipset->LSCLKTick = true;
+					chipset->LSCLKTickCounter = 0;
+					chipset->LSCLKTimeCounter = 0;
+					chipset->LSCLKFreqAddition = 0;
+				},
+				emulator);
+			region_LTBADJ.Setup(
+				0xF062, 2, "TimerBaseCounter/LTBADJ", this,
+				[](MMURegion* region, size_t offset) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					offset -= region->base;
+					return (uint8_t)((chipset->data_LTBADJ & 0x7FF) >> offset * 8);
+				},
+				[](MMURegion* region, size_t offset, uint8_t data) {
+					Chipset* chipset = (Chipset*)region->userdata;
+					offset -= region->base;
+					chipset->data_LTBADJ = (chipset->data_LTBADJ & (~(0xFF << offset * 8))) | (data << offset * 8);
+					chipset->data_LTBADJ &= 0x7FF;
+					if (chipset->data_LTBADJ != 0)
+						chipset->LSCLKThresh = (chipset->LSCLKFreq * (1 + 2097152 / (short)chipset->data_LTBADJ)) / chipset->emulator.GetCyclesPerSecond();
+					else
+						chipset->LSCLKThresh = 0;
+				},
+				emulator);
 		}
 		else {
 			region_FCON.Setup(
@@ -309,6 +451,7 @@ namespace casioemu {
 		if (emulator.hardware_id == HW_TI) {
 			peripherals.push_front(CreateTimer(emulator));
 			peripherals.push_front(CreateWatchdog(emulator));
+			peripherals.push_front(CreateTimerBaseCounter(emulator));
 		}
 		else {
 			peripherals.push_front(CreateTimer(emulator));
@@ -473,6 +616,7 @@ namespace casioemu {
 
 		if (interrupts_active[index])
 			return;
+
 		interrupts_active[index] = true;
 		pending_interrupt_count++;
 	}
@@ -487,42 +631,10 @@ namespace casioemu {
 	}
 
 	void Chipset::RaiseSoftware(size_t index) {
-		if (emulator.hardware_id == HW_TI) { // && !emulator.modeldef.real_hardware
-			if (index == 0x1) {
-				ti_screen_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));
-				// emulator.chipset.cpu.reg_r[1] = 0;
-				// emulator.chipset.cpu.reg_r[0] = 0;
-			}
-			else if (index == 0x2) {
-				int i = 500;
-				while ((i > 0) && ti_key == 0) {
-					i -= 24;
-					SDL_Delay(24);
-				}
-				emulator.chipset.cpu.reg_r[1] = 0;
-				emulator.chipset.cpu.reg_r[0] = ti_key;
-				ti_key = 0;
-			}
-			else if (index == 0x3) {
-				auto er0 = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8)),
-					 er2 = (int)(emulator.chipset.cpu.reg_r[2] & 0xff | (emulator.chipset.cpu.reg_r[3] << 8));
-				er0 += 0xb000;
-				auto ta_rsp_len = (mmu.ReadData(er0) | (mmu.ReadData(er0 + 1) << 8)) + 2;
-				std::cout << ta_rsp_len << "\n";
-				std::cout << er2 << "\n";
-				for (size_t i = 0; i < er2; i++) {
-					std::cout << (char)mmu.ReadData(er0 + i);
-				}
-			}
-			else if (index == 0x4) {
-				ti_status_buf = (int)(emulator.chipset.cpu.reg_r[0] & 0xff | (emulator.chipset.cpu.reg_r[1] << 8));
-				emulator.chipset.cpu.reg_r[1] = 0;
-				emulator.chipset.cpu.reg_r[0] = 0;
-				// callTopIconsChanged
-			}
-			else if (index == 0x5) {
-				// Notify the key event processor that a key can repeat
-			}
+		if (tiDiagMode && index == 0x02) {
+			emulator.chipset.cpu.reg_r[1] = 0;
+			emulator.chipset.cpu.reg_r[0] = tiKey;
+			tiKey = 0;
 			return;
 		}
 		index += 0x40;

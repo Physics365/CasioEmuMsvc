@@ -29,7 +29,7 @@ namespace casioemu
 
 		emulator->chipset.SetInterruptPendingSFR(interrupt_index, true);
 
-		if(enabled)
+		if (enabled)
 			emulator->chipset.RaiseMaskable(interrupt_index);
 	}
 

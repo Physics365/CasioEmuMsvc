@@ -213,16 +213,16 @@ namespace casioemu {
 			for (auto& unit : Units)
 				unit.Tick(emulator);
 			
-			if (bug++ > 0x8000)
-			{
-				bug = 0;
-				emulator.chipset.data_LTBR++;
-			}
+			//if (bug++ > 0x8000)
+			//{
+			//	bug = 0;
+			//	emulator.chipset.data_LTBR++;
+			//}
 		}
 	};
 	Peripheral* CreateTimer(Emulator& emu) {
 		if (emu.hardware_id == HW_TI) {
-			return new Timer16Bit(emu);
+			//return new Timer16Bit(emu);
 		}
 		return new Timer(emu);
 	}

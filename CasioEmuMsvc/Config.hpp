@@ -14,6 +14,7 @@
 #else
 #define FUNCTION_NAME __func__
 #endif
+#define ENABLE_CRASH_CHECK
 #ifdef ENABLE_CRASH_CHECK
 #define PANIC(...)           \
 	{                        \

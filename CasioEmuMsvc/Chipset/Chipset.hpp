@@ -59,12 +59,12 @@ namespace casioemu {
 		void ResetInterruptSFR();
 		void DestructInterruptSFR();
 		MMURegion region_int_mask, region_int_pending;
-		uint32_t data_int_mask, data_int_pending;
+		uint64_t data_int_mask, data_int_pending;
 		static const size_t managed_interrupt_base = 4;
 
 		MMURegion region_BLKCON;
 
-		MMURegion region_FCON, region_LTBR, region_HTBR, region_LTBADJ;
+		MMURegion region_FCON, region_FCON1, region_LTBR, region_HTBR, region_LTBADJ;
 		int LSCLKFreq{};
 
 		long long LSCLKTickCounter{}, HSCLKTickCounter, HSCLKTimeCounter, SYSCLKTickCounter, LSCLKTimeCounter, LSCLKThresh;
@@ -98,7 +98,7 @@ namespace casioemu {
 		uint8_t data_BLKCON, BLKCON_mask;
 		uint8_t data_EXICON;
 
-		uint8_t data_FCON, data_LTBR, data_HTBR;
+		uint8_t data_FCON, data_FCON1, data_LTBR, data_HTBR;
 		uint16_t data_LTBADJ;
 
 		// 0.5Hz-64Hz Low Speed Clock output.Corresponding bit is set to 1 on output and got reset on the next LSCLK tick.
@@ -130,10 +130,9 @@ namespace casioemu {
 
 		bool isMIBlocked;
 
-		// TI syscalls.
-		uint16_t ti_screen_buf = 0;
-		uint8_t ti_key = 0;
-		uint16_t ti_status_buf = 0;
+		// TI things.
+		bool tiDiagMode;
+		int tiKey;
 
 		/**
 		 * This exists because the Emulator that owns this Chipset is not ready

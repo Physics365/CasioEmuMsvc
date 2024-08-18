@@ -84,9 +84,10 @@ namespace casioemu {
 				0xF228, 1, "Keyboard/KO", this,
 				[](MMURegion* region, size_t offset) {
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return (uint8_t)((keyboard->keyboard_out & keyboard->keyboard_out_mask));
+					return (uint8_t)((keyboard->keyboard_out & ~keyboard->keyboard_out_mask));
 				},
 				[](MMURegion* region, size_t offset, uint8_t data) {
+					// std::cout << "P3D  <-" << std::hex << (int)data << "\n";
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
 					keyboard->keyboard_out = data;
 					keyboard->RecalculateKI();
@@ -99,6 +100,7 @@ namespace casioemu {
 					return (uint8_t)((keyboard->keyboard_out_mask));
 				},
 				[](MMURegion* region, size_t offset, uint8_t data) {
+					// std::cout << "P3DIR<-" << std::hex << (int)data << "\n";
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
 					keyboard->keyboard_out_mask = data;
 					keyboard->RecalculateKI();
@@ -106,15 +108,27 @@ namespace casioemu {
 				emulator);
 			// P4D
 			region_ki.Setup(
-				0xF230, 1, "Keyboard/KI", &keyboard_in, [](MMURegion* region, size_t offset) -> uint8_t {
+				0xF230, 1, "Keyboard/KI", this, [](MMURegion* region, size_t offset) -> uint8_t {
 					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return 0;
-					return ~(keyboard->keyboard_in) & 0x3f;
+					return ~(keyboard->keyboard_in);
 				},
 				MMURegion::IgnoreWrite, emulator);
-			//region_ki_emu.Setup(0XF210, 1, "Keyboard/EmuStatus", 0,
-			//	MMURegion::IgnoreRead<0xff>, MMURegion::IgnoreWrite, emulator);
-			EXI0INT = 4;
+			 //region_pd_emu.Setup(
+				//0xF210, 1, "Keyboard/P0D", this, [](MMURegion* region, size_t offset) -> uint8_t {
+				//	Keyboard* keyboard = ((Keyboard*)region->userdata);
+				//	for (auto& kv : keyboard->buttons) {
+				//		if (kv.pressed) {
+				//			return 0;
+				//		}
+				//	}
+				//	return 0x20;
+				//},
+				//[](MMURegion* region, size_t offset, uint8_t data) {
+				//	std::cout << std::hex << data << "\n";
+				//}, emulator);
+			EXI0INT = 7 + 0;
+			// region_ki_emu.Setup(0xF210, 1, "Keyboard/EmuStatus", new uint8_t(), MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
+			// region_ki_emu.Setup(0xF9A4, 1, "Keyboard/P4IS", &keyboard_in_emu, MMURegion::IgnoreRead<0xff>, MMURegion::IgnoreWrite, emulator);
 			goto init_kbd;
 		}
 
@@ -282,8 +296,8 @@ namespace casioemu {
 					printf("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
 			}
 			std::string bn2;
-			if (btn.keyname.starts_with("Keypad ") || btn.keyname.starts_with("keypad ")) {
-				if (btn.keyname == "Keypad Enter" || btn.keyname == "keypad enter") {
+			if (btn.keyname.starts_with("Keypad ")) {
+				if (btn.keyname == "Keypad Enter") {
 					bn2 = "Return";
 				}
 				else {
@@ -321,6 +335,14 @@ namespace casioemu {
 				button.type = Button::BT_BUTTON;
 			button.rect = btn.rect;
 			if (emulator.hardware_id == HW_TI) {
+				int kimap[] = {7, 0, 1, 2, 3, 4, 5, 6};
+				auto ki = kimap[btn.kiko & 7];
+				auto ko = (btn.kiko >> 3);
+				if (ki == 7 && ko > 0) {
+					ko -= 1;
+				}
+				button.ki_bit = 1 << ki;
+				button.ko_bit = 1 << ko;
 				button.code = btn.kiko;
 			}
 			else {
@@ -352,17 +374,24 @@ namespace casioemu {
 	}
 
 	void Keyboard::Tick() {
+		if (emulator.modeldef.hardware_id == HW_TI) {
+			for (auto& kv : buttons) {
+				if (kv.pressed) {
+					emulator.chipset.MaskableInterrupts[8].TryRaise();
+					break;
+				}
+			}
+			return;
+		}
 		if (factory_test) {
 			keyboard_in = (uint8_t)~0b00011000; // KI 3 KI 4 enabled xD
 			return;
 		}
-
 		if (!real_hardware) {
 			if (keyboard_ready_emu > 1)
 				emulator.chipset.MaskableInterrupts[EXI0INT].TryRaise();
 			return;
 		}
-
 		switch (emulator.chipset.data_EXICON & 0x03) {
 		case 0:
 			input_filter_last &= input_filter;
@@ -435,13 +464,10 @@ namespace casioemu {
 					emulator.chipset.Reset();
 					return;
 				}
-				if (emulator.hardware_id == HW_TI){
-					emulator.chipset.ti_key = 0xfe;
-					printf("Entered diag\n");
-					return;
-				}
 				factory_test = !factory_test;
-				printf("Factory test status: %d\n", factory_test);
+				emulator.chipset.tiDiagMode = factory_test;
+				emulator.chipset.tiKey = 0xfe;
+				printf("Factory test/Ti Diag status: %d\n", factory_test);
 				return;
 			}
 			if (iterator == keyboard_map.end())
@@ -476,17 +502,14 @@ namespace casioemu {
 		}
 		if (button.type == Button::BT_BUTTON) {
 			if (emulator.hardware_id == HW_TI) {
-				emulator.chipset.MaskableInterrupts[EXI0INT].TryRaise();
+				// emulator.chipset.MaskableInterrupts[EXI0INT].TryRaise();
 				printf("Keycode: 0x%x\n", button.code);
-				if (!emulator.chipset.GetRunningState() && button.code == 0x29) {
-					emulator.chipset.Reset();
-				}
-				emulator.chipset.ti_key = button.code;
-				return;
+				// if (!emulator.chipset.GetRunningState() && button.code == 0x29) {
+				//	emulator.chipset.Reset();
+				// }
+				emulator.chipset.tiKey = button.code;
 			}
-			else {
-				printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
-			}
+			printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
 		}
 
 		if (button.type == Button::BT_BUTTON) {
@@ -664,6 +687,7 @@ namespace casioemu {
 					had_effect = true;
 			}
 		}
+
 		if (had_effect) {
 			if (real_hardware)
 				RecalculateGhost();

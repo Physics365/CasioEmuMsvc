@@ -157,12 +157,15 @@ namespace casioemu {
 					}
 					return;
 				}
-				if (!n_ram_buffer || !emulator.chipset.ti_screen_buf || !emulator.chipset.ti_status_buf)
+				if (!n_ram_buffer)//  || !emulator.chipset.ti_status_buf) //  || !emulator.chipset.ti_screen_buf
 					return;
 				float ink_alpha_on = (ti_contrast - 100) * 20.0;
 				float ink_alpha_off = std::clamp(ink_alpha_on * 0.1, 0.0, 255.0);
 				ink_alpha_on = std::clamp(ink_alpha_on, 0.0f, 255.0f);
-				// auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_screen_buf;
+				uint8_t* screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + 0xE708;
+				if (emulator.modeldef.real_hardware) {
+					screen_buffer = this->screen_buffer;
+				}
 				for (int ix = 0; ix < 192; ++ix) {
 					for (int iy = 0; iy < 64; ++iy) {
 						uint32_t i = (ix << 6) | iy;
@@ -174,7 +177,7 @@ namespace casioemu {
 						data = data * ratio + (on ? ink_alpha_on : ink_alpha_off) * (1 - ratio);
 					}
 				}
-				auto screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + emulator.chipset.ti_status_buf;
+				screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + 0xe5d4;
 				int x = 0;
 				for (int ix = 1; ix != SPR_MAX; ++ix) {
 					auto off = sprite_bitmap[ix].offset;
@@ -620,7 +623,6 @@ namespace casioemu {
 								this_obj->ti_col = 0;
 								this_obj->ti_page++;
 							}
-							std::cout << "a\n";
 						}
 						else {
 							auto data = this_obj->ti_port7;
@@ -637,11 +639,26 @@ namespace casioemu {
 									std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
 								}
 								else if (dh == 0b1011) {
-									std::cout << "Set page  " << (data & 0xf) << "\n";
+									// std::cout << "Set page  " << (data & 0xf) << "\n";
 									this_obj->ti_page = (data & 0xf);
 								}
+								else if ((data >> 3) == 17) {
+									std::cout << "Set addressing mode\n";
+								}
 								else if ((data >> 2) == 58) {
-									std::cout << "Set Bias\n";
+									std::cout << "Set bias\n";
+								}
+								else if ((data >> 2) == 40) {
+									std::cout << "Set frame rate\n";
+								}
+								else if ((data >> 1) == 82) {
+									std::cout << "Set all display segments\n";
+								}
+								else if ((data >> 1) == 83) {
+									std::cout << "Set inverse display\n";
+								}
+								else if ((data & 0xf9) == 0xc0) {
+									std::cout << "Set Com Seg Scan Direction\n";
 								}
 								else if (data == 0xe3) {
 									std::cout << "Nop\n";

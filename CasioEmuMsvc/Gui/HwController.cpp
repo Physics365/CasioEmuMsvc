@@ -2,6 +2,7 @@
 #include "..\Config.hpp"
 #include "Ui.hpp"
 #include "imgui\imgui.h"
+#include "Chipset.hpp"
 
 int screen_flashing_threshold = 20;
 float screen_fading_blending_coefficient = 0;
@@ -96,6 +97,12 @@ void HwController::RenderCore() {
 			}
 		}
 		m_emu->modeldef.pd_value = pd;
+	}
+
+	static int irq = 0;
+	ImGui::InputInt("",&irq);
+	if (ImGui::Button("中断")) {
+		m_emu->chipset.RaiseMaskable(irq);
 	}
 	//	static char buf4[40];
 	//	ImGui::InputText("##cps_in", buf4, 40);

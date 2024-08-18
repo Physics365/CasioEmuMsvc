@@ -165,7 +165,6 @@ namespace casioemu {
 		if (!region || !region->read) {
 			return 0;
 		}
-
 		return region->read(region, offset);
 	}
 
@@ -200,7 +199,7 @@ namespace casioemu {
 		MMURegion* region = byte.region;
 		if (!region || !region->write) {
 #ifdef DBG
-			std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
+			// std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
 #endif
 			return;
 		}
