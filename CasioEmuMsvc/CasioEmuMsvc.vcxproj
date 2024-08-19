@@ -318,6 +318,7 @@
     <ClCompile Include="Gui\Editors.cpp" />
     <ClCompile Include="Gui\Hooks.cpp" />
     <ClCompile Include="Gui\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Peripheral\ML620Ports.cpp" />
     <ClCompile Include="Peripheral\ROMWindow.cpp" />
     <ClCompile Include="Peripheral\Uart.cpp" />
     <ClCompile Include="StartupUi\StartupUi.cpp" />
@@ -394,6 +395,7 @@
     <ClInclude Include="Gui\MemBreakPoint.hpp" />
     <ClInclude Include="Gui\HwController.h" />
     <ClInclude Include="Ext\Memory.h" />
+    <ClInclude Include="Peripheral\ML620Ports.h" />
     <ClInclude Include="Peripheral\Uart.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stringhelper.h" />

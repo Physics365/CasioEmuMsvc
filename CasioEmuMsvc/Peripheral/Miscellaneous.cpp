@@ -33,27 +33,6 @@ namespace casioemu {
 				Miscellaneous* self = (Miscellaneous *)region->userdata;
 				self->emulator.chipset.SegmentAccess = data & 1; }, emulator);
 		}
-
-		// * TODO: figure out what these are
-
-		//int n_byte;
-		//switch (emulator.hardware_id) {
-		//case HW_ES_PLUS:
-		//case HW_FX_5800P:
-		//	n_byte = 0;
-		//	break;
-		//case HW_CLASSWIZ_II:
-		//case HW_CLASSWIZ:
-		//	n_byte = 2;
-		//	break;
-		//default:
-		//	PANIC("Unknown hardware_id\n");
-		//}
-		//for (int i = 0; i < n_byte; ++i) {
-		//	std::ostringstream stream;
-		//	stream << "Miscellaneous/Unknown/" << std::hex << std::uppercase << addr[i] << "*1";
-		//	region[i].Setup(addr[i], 1, stream.str(), &data[i], MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
-		//}
 	}
 
 	void Miscellaneous::Tick() {

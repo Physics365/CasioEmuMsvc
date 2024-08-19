@@ -264,7 +264,7 @@ namespace casioemu {
 
 	init_kbd: {
 		for (auto& button : buttons)
-			button.type = Button::BT_NONE;
+			button = {};
 
 		for (auto& btn : emulator.modeldef.buttons) {
 			auto button_name = btn.keyname.c_str();

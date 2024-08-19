@@ -217,8 +217,9 @@ namespace casioemu {
 		StackFrame sf{};
 		sf.new_pc = reg_csr << 16 | reg_pc;
 		if (!stack->empty() && !stack->back().lr_pushed) {
-			std::cout << "[CPU][Warn] Control flow get override!(likely stack corruption or a bootloader)\n";
-			stack->back().lr_push_address = 0x0721;
+			std::cout << "[CPU][Warn] Lr get override.(BL after lr not backuped)\n";
+			stack->back().lr = 0xffffff;
+			stack->back().lr_push_address = 0;
 			stack->back().lr_pushed = true;
 			// stack->clear();
 		}

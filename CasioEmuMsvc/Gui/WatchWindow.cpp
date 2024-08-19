@@ -119,9 +119,8 @@ public:
 };
 inline static std::ostream& operator<<(std::ostream& os, SymbolAddr ad) {
 	auto iter = std::find_if(g_labels.begin(), g_labels.end(), [&](Label& dat) { return dat.address == ad.addr; });
-	if (iter == g_labels.end())
-	{
-		return os  << ad.addr;
+	if (iter == g_labels.end()) {
+		return os << ad.addr;
 	}
 	else {
 		return os << iter->name;
@@ -136,7 +135,7 @@ inline std::string GetBacktrace() {
 			   << std::setw(6) << SymbolAddr{frame.new_pc}
 			   << " returns to " << std::setw(6);
 		if (frame.lr_pushed) {
-			output << SymbolAddr{frame.lr};
+			output << frame.lr;
 
 			output << " - lr pushed at "
 				   << std::setw(4) << frame.lr_push_address;

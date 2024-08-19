@@ -177,6 +177,9 @@
     <ClCompile Include="Peripheral\VoltageLevelSupervisor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Peripheral\ML620Ports.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">
@@ -378,6 +381,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Ext\LabelFile.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Peripheral\ML620Ports.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

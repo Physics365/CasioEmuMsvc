@@ -36,7 +36,7 @@ namespace casioemu {
 	}
 
 	inline uint16_t le_read(uint8_t& a) {
-		return *(uint16_t*)&a; // TODO: impl for a BE machine?
+		return *(uint16_t*)&a;
 	}
 
 	uint16_t MMU::ReadCode(size_t offset) {

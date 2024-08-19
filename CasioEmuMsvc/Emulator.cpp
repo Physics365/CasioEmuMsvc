@@ -30,7 +30,7 @@ namespace casioemu {
 																										: 2048 * 1024 * 2;
 		}
 		else {
-			cycles_per_second = 1024 * 1024 * 8; // TODO: add it in ui!
+			cycles_per_second = 1024 * 1024 * 8;
 		}
 		timer_interval = 20;
 

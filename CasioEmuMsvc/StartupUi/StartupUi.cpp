@@ -62,7 +62,7 @@ class ModelEditor : public UIWindow {
 	char buffer2[12];
 	char buffer3[12];
 
-	casioemu::ButtonInfo* btninfo;
+	casioemu::ButtonInfo* btninfo{};
 
 public:
 	ModelEditor(std::filesystem::path path) : UIWindow("Model Editor##114514"), pth(path) {

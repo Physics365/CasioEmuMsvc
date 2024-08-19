@@ -97,8 +97,9 @@ namespace casioemu {
 					auto lr_o = m.ReadData(a) | (m.ReadData(a + 1) << 8) | (m.ReadData(a + 2) << 16);
 					if (stack->back().lr_push_address == oldsp) {
 						if (stack->back().lr != lr_o) {
-							std::cout << "[CPU][Warn] lr get overrided.\n";
-							// lets treat it as calling a new function?
+							// std::cout << "[CPU][Warn] lr get overrided.\n";
+							// TODO: lets treat it as calling a new function?
+							stack->back().is_jump = true;
 						}
 						else {
 							RaiseEvent(on_function_return, *this, FunctionEventArgs{oldaddr, (uint32_t)reg_pc | reg_csr << 16});
@@ -106,8 +107,9 @@ namespace casioemu {
 						}
 					}
 					else {
-						std::cout << "[CPU][Warn] stack unbalanced.\n";
-						// lets treat it as calling a new function?
+						// std::cout << "[CPU][Warn] stack unbalanced.\n";
+						// TODO: lets treat it as calling a new function?
+						stack->back().is_jump = true;
 					}
 				}
 				else {
