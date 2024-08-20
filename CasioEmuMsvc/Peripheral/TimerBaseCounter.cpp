@@ -150,9 +150,9 @@ namespace casioemu {
 			emulator.chipset.LSCLK_output = 0xFF;
 			LTBR_reset_tick = true;
 
-			// emulator.chipset.MaskableInterrupts[LTB0INT].TryRaise();
-			// emulator.chipset.MaskableInterrupts[LTB1INT].TryRaise();
-			// emulator.chipset.MaskableInterrupts[LTB2INT].TryRaise();
+			emulator.chipset.MaskableInterrupts[LTB0INT].TryRaise();
+			emulator.chipset.MaskableInterrupts[LTB1INT].TryRaise();
+			emulator.chipset.MaskableInterrupts[LTB2INT].TryRaise();
 		}
 	};
 	Peripheral* CreateTimerBaseCounter(Emulator& emu) {

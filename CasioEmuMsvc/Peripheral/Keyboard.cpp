@@ -232,7 +232,7 @@ namespace casioemu {
 			SDL_Keycode button_key;
 			button_key = SDL_GetKeyFromName(button_name);
 			if (button_key == SDLK_UNKNOWN)
-				printf("[Keyboard] Warn: Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
+				printf("[Keyboard][Warn] Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
 
 			uint8_t code = btn.kiko;
 			size_t button_ix;
@@ -253,7 +253,7 @@ namespace casioemu {
 			if (button_key != SDLK_UNKNOWN) {
 				bool insert_success = keyboard_map.emplace(button_key, button_ix).second;
 				if (!insert_success)
-					printf("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
+					printf("[Keyboard][Warn] Key '%s' is used twice for key %x\n", button_name, btn.kiko);
 			}
 			std::string bn2;
 			if (btn.keyname.starts_with("Keypad ")) {
@@ -412,7 +412,7 @@ namespace casioemu {
 		case SDL_KEYUP:
 			SDL_Keycode keycode = event.key.keysym.sym;
 			auto iterator = keyboard_map.find(keycode);
-			printf("Key: %x(%s)\n", keycode, SDL_GetKeyName(keycode));
+			printf("[Keyboard][Info] SDL_Keycode: %x(%s)\n", keycode, SDL_GetKeyName(keycode));
 			if (event.key.keysym.sym == SDLK_F11 && event.key.state) {
 				if (event.key.keysym.mod & KMOD_LCTRL) {
 					emulator.chipset.Reset();
@@ -451,19 +451,19 @@ namespace casioemu {
 			if (!(emulator.hardware_id == HW_CLASSWIZ && (emulator.chipset.data_FCON & 0x03) == 0x03))
 				emulator.chipset.Reset();
 			else {
-				printf("RESETB is BLOCKED.Press Ctrl+F11 to reset.\n");
+				printf("[Keyboard][Info] RESETB is BLOCKED.Press Ctrl+F11 to reset.\n");
 			}
 		}
 		if (button.type == Button::BT_BUTTON) {
 			if (emulator.hardware_id == HW_TI) {
 				// emulator.chipset.MaskableInterrupts[EXI0INT].TryRaise();
-				printf("Keycode: 0x%x\n", button.code);
+				printf("[Keyboard][Info] Keycode: 0x%x\n", button.code);
 				// if (!emulator.chipset.GetRunningState() && button.code == 0x29) {
 				//	emulator.chipset.Reset();
 				// }
 				emulator.chipset.tiKey = button.code;
 			}
-			printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
+			printf("[Keyboard][Info] KI: %d, KO: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
 		}
 
 		if (button.type == Button::BT_BUTTON) {
@@ -510,7 +510,7 @@ namespace casioemu {
 				PressButton(buttons[button_index], false);
 			}
 			else {
-				logger::Info("Invalid button code 0x%02X!\n", code);
+				printf("[Keyboard][Info] Invalid button code 0x%02X!\n", code);
 			}
 		}
 	}

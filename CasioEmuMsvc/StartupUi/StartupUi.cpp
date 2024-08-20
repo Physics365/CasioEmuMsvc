@@ -383,12 +383,19 @@ namespace casioemu {
 			std::ifstream ifs2{"roms.db", std::ifstream::binary};
 			if (ifs2)
 				Binary::Read(ifs2, RomNames);
+			else {
+				printf("[StartupUI][Warn] \"rom.db\" not found. Names may be inaccurate!\n");
+			}
+			std::filesystem::create_directory("models");
 			for (auto& dir : std::filesystem::directory_iterator("models")) {
 				if (dir.is_directory()) {
+					printf("[StartupUI][Info] Checking %s\n", dir.path().string().c_str());
 					auto config = dir.path() / "config.bin";
 					std::ifstream ifs(config, std::ios::in | std::ios::binary);
-					if (!ifs)
+					if (!ifs) {
+						printf("[StartupUI][Info] Unable to open %s\n", config.string().c_str());
 						continue;
+					}
 					ModelInfo mi{};
 					Binary::Read(ifs, mi);
 					ifs.close();
@@ -472,6 +479,9 @@ namespace casioemu {
 						else {
 							mod.show_sum = false;
 						}
+						printf("[StartupUI][Debug] Model Summary\n"
+							"[StartupUI][Debug] Name: %s\n"
+							"[StartupUI][Debug] Type: %s\n",mod.name.c_str(),mod.type.c_str());
 					}
 					models.push_back(mod);
 				}

@@ -62,7 +62,7 @@ void CodeViewer::SetupHooks() {
 void CodeViewer::PrepareDisasm() {
 	std::thread t1([this]() {
 #ifndef _DEBUG
-		printf("Start to disasm ...\n");
+		printf("[UI][Info] Start to disasm ...\n");
 		uint8_t* beg = (uint8_t*)m_emu->chipset.rom_data.data();
 		auto rom = beg;
 		auto end = rom + m_emu->chipset.rom_data.size();
@@ -77,7 +77,7 @@ void CodeViewer::PrepareDisasm() {
 			codes.push_back(ce);
 			ss.str("");
 		}
-		printf("Finished!\n");
+		printf("[UI][Info] Finished!\n");
 		max_row = codes.size();
 #endif
 		is_loaded = true;

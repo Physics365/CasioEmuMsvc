@@ -199,7 +199,7 @@ namespace casioemu {
 		MMURegion* region = byte.region;
 		if (!region || !region->write) {
 #ifdef DBG
-			 std::cout << std::hex << offset << "<-" << (int)data << std::oct << "\n";
+			printf("[MMU][Warn] Unmapped write: %x <- %x\n", (uint32_t)offset, (uint32_t)data);
 #endif
 			return;
 		}

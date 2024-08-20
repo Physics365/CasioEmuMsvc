@@ -48,7 +48,7 @@ namespace casioemu {
 						}
 						break;
 					case 3:
-						printf("Program %x to %x\n", (int)fo, data);
+						// printf("Program %x to %x\n", (int)fo, data);
 						flash->emulator.chipset.flash_data[fo] = data;
 						flash->flash_mode = 0;
 						return;
@@ -69,7 +69,7 @@ namespace casioemu {
 							memset(&flash->emulator.chipset.flash_data[fo], 0xff, 0x7fff);
 						if (fo == 0x20000 || fo == 0x30000)
 							memset(&flash->emulator.chipset.flash_data[fo], 0xff, 0xffff);
-						printf("Erase %x (%x)\n", (int)fo, data);
+						// printf("Erase %x (%x)\n", (int)fo, data);
 						return;
 					case 7:
 						if (fo == 0xaaa && data == 0xaa) {
@@ -91,7 +91,7 @@ namespace casioemu {
 					//	printf("Erase Suspend.\n");
 					//	return;
 					//}
-					printf("Unknown jedec %05x = %02x\n", (int)fo, data);
+					printf("[Flash][Warn] Unknown jedec %05x = %02x\n", (int)fo, data);
 				},
 				emulator);
 		}

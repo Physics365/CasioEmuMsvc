@@ -39,6 +39,8 @@ using namespace casioemu;
 int main(int argc, char* argv[]) {
 #ifdef _WIN32
 	timeBeginPeriod(1);
+	SetConsoleCP(65001); // Set to UTF8
+	SetConsoleOutputCP(65001);
 #endif //  _WIN32
 
 	std::map<std::string, std::string> argv_map;
@@ -57,7 +59,7 @@ int main(int argc, char* argv[]) {
 		if (argv_map.find(key) == argv_map.end())
 			argv_map[key] = value;
 		else
-			logger::Info("[argv] #%i: key '%s' already set\n", ix, key.c_str());
+			logger::Info("[argv][Info] #%i: key '%s' already set\n", ix, key.c_str());
 	}
 	bool headless = argv_map.find("headless") != argv_map.end();
 

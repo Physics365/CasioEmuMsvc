@@ -626,55 +626,54 @@ namespace casioemu {
 								ti_col = (ti_col & 0xf) | ((data & 0xf) << 4);
 							}
 							else if ((dh & 0b1100) == 0b0100) {
-								std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
+								// std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
 							}
 							else if (dh == 0b1011) {
 								// std::cout << "Set page  " << (data & 0xf) << "\n";
 								ti_page = (data & 0xf);
 							}
 							else if ((data >> 3) == 17) {
-								std::cout << "Set addressing mode\n";
+								// std::cout << "Set addressing mode\n";
 							}
 							else if ((data >> 2) == 58) {
-								std::cout << "Set bias\n";
+								// std::cout << "Set bias\n";
 							}
 							else if ((data >> 2) == 40) {
-								std::cout << "Set frame rate\n";
+								// std::cout << "Set frame rate\n";
 							}
 							else if ((data >> 1) == 82) {
-								std::cout << "Set all display segments\n";
+								// std::cout << "Clear all display segments\n";
 							}
 							else if ((data >> 1) == 83) {
-								std::cout << "Set inverse display\n";
+								// std::cout << "Set inverse display\n";
 							}
 							else if ((data & 0xf9) == 0xc0) {
-								std::cout << "Set Com Seg Scan Direction\n";
+								// std::cout << "Set Com Seg Scan Direction\n";
 							}
 							else if (data == 0xe3) {
-								std::cout << "Nop\n";
+								// std::cout << "Nop\n";
 							}
 							else if (data == 0xe2) {
-								std::cout << "Software reset\n";
+								// std::cout << "Software reset\n";
 							}
 							else if (data == 0xaf) {
-								std::cout << "Enabled screen!\n";
+								// std::cout << "Enabled screen!\n";
 								ti_enabled = 1;
 							}
 							else if (data == 0x81) {
 								ti_port_status = 1;
 							}
 							else if (data == 0xae) {
-								std::cout << "Disabled screen!\n";
+								// std::cout << "Disabled screen!\n";
 								ti_enabled = 0;
 							}
 							else {
-								std::cout << "Unknown " << std ::hex << (int)data << "\n"
-										  << std::dec;
+								std::cout << "[Screen][Warn] Unknown ST7525 command: 0x" << std::hex << (int)data << "\n";
 							}
 							break;
 						}
 						case 1:
-							std::cout << "Set contrast!\n";
+							// std::cout << "Set contrast!\n";
 							ti_contrast = data;
 							ti_port_status = 0;
 							break;

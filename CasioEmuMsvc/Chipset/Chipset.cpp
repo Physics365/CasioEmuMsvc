@@ -507,13 +507,19 @@ namespace casioemu {
 			if (flash_handle.fail())
 				PANIC("std::ifstream failed: %s\n", std::strerror(errno));
 			flash_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(flash_handle)), std::istreambuf_iterator<char>());
+			flash_data.resize(0x80000,0xff);
+			memset(&flash_data[0x20000], 0xff, 0x10000); // TODO: check clear ram flag
+			memset(&flash_data[0x30000], 0, 0x8000);
+			memset(&flash_data[0x38000], 0xff, 0x8000);
+			flash_data[0x37FFE] = 0xff;
+			flash_data[0x37FFF] = 0x44;
 		}
 		{
 			auto ri = rom_info(rom_data, flash_data);
 			if (ri.ok) {
-				printf("[Chipset] Model:       %s\n", ri.ver);
-				printf("[Chipset] CalcID:      %llx\n", *(unsigned long long*)ri.cid);
-				printf("[Chipset] Target SUM:  %02x ,Calculated SUM: %02x\n", ri.desired_sum, ri.real_sum);
+				printf("[Chipset][Info] Model:       %s\n", ri.ver);
+				printf("[Chipset][Info] CalcID:      %llx\n", *(unsigned long long*)ri.cid);
+				printf("[Chipset][Info] Target SUM:  %02x ,Calculated SUM: %02x\n", ri.desired_sum, ri.real_sum);
 				auto res = (ri.real_sum == ri.desired_sum);
 				if (res != real_hardware)
 					printf("[Chipset][Warn] SUM %s!\n", res ? "OK" : "NG");

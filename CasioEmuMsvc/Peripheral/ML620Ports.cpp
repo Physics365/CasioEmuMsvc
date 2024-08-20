@@ -119,10 +119,14 @@ namespace casioemu {
 				}
 				// 启用 IS
 				reg_ie.Setup(
-					pbase++, 1, "PortN/Enable", this, MMURegion::IgnoreRead<0>,
+					pbase++, 1, "PortN/Enable", this,
+					[](MMURegion* reg, size_t off) -> uint8_t {
+						auto p = (ML620Port*)reg->userdata;
+						return p->dat_ie;
+					},
 					[](MMURegion* reg, size_t off, uint8_t dat) {
 						auto p = (ML620Port*)reg->userdata;
-						p->dat_is |= dat;
+						p->dat_ie |= dat;
 						p->UpdateStatus();
 					},
 					emulator);
@@ -286,8 +290,10 @@ namespace casioemu {
 	};
 	void ML620Port::UpdateInterrupt(int pi_tmp) {
 		if (pt.PortExiSelect(ind)) {
-			auto it = (pi_tmp & (pi_tmp ^ PortInputOld) & TriggerWhenRise) | (PortInputOld & (pi_tmp ^ PortInputOld) & TriggerWhenFall);
+			auto it = ((pi_tmp & (pi_tmp ^ PortInputOld) & TriggerWhenRise) | (PortInputOld & (pi_tmp ^ PortInputOld) & TriggerWhenFall)) && dat_ie;
 			if (it) {
+				dat_is |= it;
+				dat_ie &= ~it;
 				pt.PortTriggerInterrupt(ind);
 			}
 		}
