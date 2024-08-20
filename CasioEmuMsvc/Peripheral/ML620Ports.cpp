@@ -1,5 +1,7 @@
-#include "ML620Ports.h"
+ï»¿#include "ML620Ports.h"
+#include "Chipset.hpp"
 #include "Config.hpp"
+#include "Emulator.hpp"
 #include "MMURegion.hpp"
 #include "Peripheral.hpp"
 #define DefSfr(x)        \
@@ -29,13 +31,13 @@ namespace casioemu {
 		DefSfr(ic);
 		DefSfr(iu);
 
-		// ¶Ë¿ÚµçÆ½
+		// ç«¯å£ç”µå¹³
 		uint8_t PortLevel{};
 
 	public:
-		// ¶Ë¿ÚµçÆ½ÊäÈë
+		// ç«¯å£ç”µå¹³è¾“å…¥
 		uint8_t PortInput{};
-		// ¶Ë¿ÚµçÆ½ÊäÈëÊÇ·ñ´æÔÚ(Ğü¿Õ)
+		// ç«¯å£ç”µå¹³è¾“å…¥æ˜¯å¦å­˜åœ¨(æ‚¬ç©º)
 		uint8_t PortInputExists{};
 
 	private:
@@ -115,7 +117,7 @@ namespace casioemu {
 						},
 						emulator);
 				}
-				// ÆôÓÃ IS
+				// å¯ç”¨ IS
 				reg_ie.Setup(
 					pbase++, 1, "PortN/Enable", this, MMURegion::IgnoreRead<0>,
 					[](MMURegion* reg, size_t off, uint8_t dat) {
@@ -124,9 +126,9 @@ namespace casioemu {
 						p->UpdateStatus();
 					},
 					emulator);
-				// ÕâÊÇÖ»¶Á¼Ä´æÆ÷ xd
+				// è¿™æ˜¯åªè¯»å¯„å­˜å™¨ xd
 				reg_is.Setup(pbase++, 1, "PortN/Status", &dat_is, MMURegion::DefaultRead<uint8_t>, MMURegion::IgnoreWrite, emulator);
-				// Çå³ı IS
+				// æ¸…é™¤ IS
 				reg_ic.Setup(
 					pbase++, 1, "PortN/Clear", this, MMURegion::IgnoreRead<0>,
 					[](MMURegion* reg, size_t off, uint8_t dat) {
@@ -195,9 +197,9 @@ namespace casioemu {
 	public:
 		ML620Port* ports[16]{};
 		MMURegion ExiSelect{};
-		uint8_t ExiSelect_d[8];
+		uint8_t ExiSelect_d[8]{};
 		MMURegion ExiCon{};
-		uint8_t ExiCon_d[4];
+		uint8_t ExiCon_d[4]{};
 		Ports(Emulator& emu) : Peripheral(emu) {
 		}
 		void Initialise() override {
@@ -208,16 +210,35 @@ namespace casioemu {
 			ExiSelect.Setup(
 				0xF048, 8, "Ports/ExiSelect", this,
 				[](MMURegion* reg, size_t offset) -> uint8_t {
-
+					auto pt = (Ports*)reg->userdata;
+					return pt->ExiSelect_d[offset & 0x7];
 				},
 				[](MMURegion* reg, size_t offset, uint8_t dat) {
-
+					auto pt = (Ports*)reg->userdata;
+					pt->ExiSelect_d[offset & 0x7] = dat;
 				},
 				emulator);
-			ExiCon.Setup(0xF040, 4, "Ports/ExiCon", this, );
+			ExiCon.Setup(
+				0xF040, 4, "Ports/ExiCon", this,
+				[](MMURegion* reg, size_t offset) -> uint8_t {
+					auto pt = (Ports*)reg->userdata;
+					return pt->ExiCon_d[offset & 0x3];
+				},
+				[](MMURegion* reg, size_t offset, uint8_t dat) {
+					auto pt = (Ports*)reg->userdata;
+					pt->ExiCon_d[offset & 0x3] = dat;
+				},
+				emulator);
 		}
 		bool PortExiSelect(int i) {
-			return 1;
+			for (size_t j = 0; j < 8; j++) {
+				if (
+					((ExiSelect_d[j] >> 4) == i) &&
+					((ExiSelect_d[j] & 0xf) == 0x8)) {
+					return 1;
+				}
+			}
+			return 0;
 		}
 		void* QueryInterface(const char* name) override {
 			if (strcmp(name, typeid(IPortProvider).name()) == 0) {
@@ -226,11 +247,29 @@ namespace casioemu {
 			return 0;
 		}
 		void PortTriggerInterrupt(int i) {
+			size_t k = -1;
+			for (size_t j = 0; j < 8; j++) {
+				if (((ExiSelect_d[j] >> 4) == i) &&
+					((ExiSelect_d[j] & 0xf) == 0x8)) {
+					emulator.chipset.MaskableInterrupts[7 + j].TryRaise();
+				}
+			}
 		}
 		void PortsTriggerInterrupt(int i, uint8_t Before, uint8_t After) {
+			for (size_t j = 0; j < 8; j++) {
+				if ((ExiSelect_d[j] >> 4) == i) {
+					auto d = ExiSelect_d[j] & 0xf;
+					if (d > 7)
+						continue;
+					auto rise = ExiCon_d[1], fall = ExiCon_d[0];
+					auto it = ((After & (After ^ Before) & rise) | (Before & (After ^ Before) & fall)) & (1 << d);
+					if (it)
+						emulator.chipset.MaskableInterrupts[7 + j].TryRaise();
+				}
+			}
 		}
 
-		// Í¨¹ı IPortProvider ¼Ì³Ğ
+		// é€šè¿‡ IPortProvider ç»§æ‰¿
 		void SetPortOutputCallback(int port, std::function<void(uint8_t new_output)> callback) override {
 			if (port >= 0 && port < 16 && ports[port]) {
 				ports[port]->SetOutputCallback(callback);

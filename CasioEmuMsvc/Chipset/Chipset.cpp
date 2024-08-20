@@ -44,6 +44,8 @@ namespace casioemu {
 		return nullptr;
 	}
 	Chipset::Chipset(Emulator& _emulator) : emulator(_emulator), cpu(*new CPU(emulator)), mmu(*new MMU(emulator)) {
+		tiDiagMode = false;
+		tiKey = 0;
 	}
 
 	void Chipset::Setup() {
