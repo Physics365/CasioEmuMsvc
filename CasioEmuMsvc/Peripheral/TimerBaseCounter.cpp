@@ -97,7 +97,7 @@ namespace casioemu {
 			clock_type = CLOCK_LSCLK;
 
 			reg_LTBINT.Setup(
-				0xF064, 2, "Chipset/LTBINT", this,
+				0xF064, 2, "TimerBaseCounter/LTBINT", this,
 				[](MMURegion* sender, size_t offset) -> uint8_t {
 					auto pthis = (TBC2*)sender->userdata;
 					if (offset == 0xF064) {

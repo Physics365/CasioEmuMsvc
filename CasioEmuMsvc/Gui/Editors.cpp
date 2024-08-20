@@ -56,8 +56,7 @@ inline auto Highlight_Default(auto he) {
 
 std::vector<UIWindow*> GetEditors() {
 	SetupHook(on_memory_write, [](casioemu::MMU& mmu, MemoryEventArgs& mea) {
-		// if (mmu.ReadData(mea.offset) != mea.value)
-		if (mea.offset < 0x10000)
+		if (mea.offset < 0x80000)
 			ram_edit_ov[mea.offset] = 255;
 	});
 	std::vector<UIWindow*> windows;
@@ -72,7 +71,7 @@ std::vector<UIWindow*> GetEditors() {
 					GetCommonMemLabels(m_emu->hardware_id)})));
 	windows.push_back(new HexEditor{"Rom", m_emu->chipset.rom_data.data(), m_emu->chipset.rom_data.size(), 0});
 	if (m_emu->hardware_id == casioemu::HW_FX_5800P) {
-		windows.push_back(MMU_Hex(new HexEditor{"PRam", (void*)0x40000, 0x8000, 0x40000}));
+		windows.push_back(MMU_Hex(new SpansHexEditor{"PRam", (void*)0x40000, 0x8000, 0x40000, GetCommonMemLabels(m_emu->hardware_id)}));
 		windows.push_back(new HexEditor{"Flash", m_emu->chipset.flash_data.data(), m_emu->chipset.flash_data.size(), 0});
 	}
 	windows.push_back(MMU_Hex(new HexEditor{"All", 0, 0xfffff, 0}));

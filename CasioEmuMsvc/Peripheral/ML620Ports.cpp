@@ -261,8 +261,8 @@ namespace casioemu {
 					auto d = ExiSelect_d[j] & 0xf;
 					if (d > 7)
 						continue;
-					auto rise = ExiCon_d[1], fall = ExiCon_d[0];
-					auto it = ((After & (After ^ Before) & rise) | (Before & (After ^ Before) & fall)) & (1 << d);
+					auto rise = ExiCon_d[1] & (1 << j) ? (1 << d) : 0, fall = ExiCon_d[0] & (1 << j) ? (1 << d) : 0;
+					auto it = ((After & (After ^ Before) & rise) | (Before & (After ^ Before) & fall));
 					if (it)
 						emulator.chipset.MaskableInterrupts[7 + j].TryRaise();
 				}

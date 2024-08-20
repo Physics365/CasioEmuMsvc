@@ -645,7 +645,7 @@ namespace casioemu {
 	}
 
 	void Chipset::RaiseSoftware(size_t index) {
-		if (tiDiagMode && index == 0x02) {
+		if ((tiDiagMode || !emulator.modeldef.real_hardware) && index == 0x02) {
 			emulator.chipset.cpu.reg_r[1] = 0;
 			emulator.chipset.cpu.reg_r[0] = tiKey;
 			tiKey = 0;

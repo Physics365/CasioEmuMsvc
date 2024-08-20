@@ -222,7 +222,7 @@ namespace casioemu {
 	};
 	Peripheral* CreateTimer(Emulator& emu) {
 		if (emu.hardware_id == HW_TI) {
-			//return new Timer16Bit(emu);
+			return new Timer16Bit(emu);
 		}
 		return new Timer(emu);
 	}

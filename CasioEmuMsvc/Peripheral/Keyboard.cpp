@@ -81,10 +81,13 @@ namespace casioemu {
 		clock_type = CLOCK_UNDEFINED;
 		if (emulator.hardware_id == HW_TI) {
 			auto pp = emulator.chipset.QueryInterface<IPortProvider>();
+			if (!pp)
+				return;
 			pp->SetPortOutputCallback(3, [&](uint8_t new_output) {
 				keyboard_out = new_output;
 				RecalculateKI();
 			});
+			pp->SetPortInput(0, 0, 0x20);
 			pp->SetPortInput(4, 0, 0xff);
 			goto init_kbd;
 		}
@@ -596,10 +599,20 @@ namespace casioemu {
 	void Keyboard::RecalculateKI() {
 		if (emulator.hardware_id == HW_TI) {
 			auto pp = emulator.chipset.QueryInterface<IPortProvider>();
+			if (!pp) // No port provider :(
+				return;
+			auto is_on_pressed = false;
 			keyboard_in = 0;
-			for (auto& button : buttons)
+			for (auto& button : buttons) {
+				if (button.code == 0x29) { // right, [ON] is a gpio button xd
+					if (button.pressed)
+						is_on_pressed = true;
+					continue;
+				}
 				if (button.type == Button::BT_BUTTON && button.pressed && button.ko_bit & keyboard_out)
 					keyboard_in |= button.ki_bit;
+			}
+			pp->SetPortInput(0, is_on_pressed ? 0x20 : 0, 0x20);
 			pp->SetPortInput(4, keyboard_in, 0xff);
 			return;
 		}
