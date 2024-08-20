@@ -197,7 +197,7 @@ namespace casioemu {
 		MMURegion ExiSelect{};
 		uint8_t ExiSelect_d[8];
 		MMURegion ExiCon{};
-		uint8_t ExiCon_d[8];
+		uint8_t ExiCon_d[4];
 		Ports(Emulator& emu) : Peripheral(emu) {
 		}
 		void Initialise() override {
@@ -205,6 +205,16 @@ namespace casioemu {
 			for (auto num : init) {
 				ports[num] = new ML620Port{emulator, *this, num};
 			}
+			ExiSelect.Setup(
+				0xF048, 8, "Ports/ExiSelect", this,
+				[](MMURegion* reg, size_t offset) -> uint8_t {
+
+				},
+				[](MMURegion* reg, size_t offset, uint8_t dat) {
+
+				},
+				emulator);
+			ExiCon.Setup(0xF040, 4, "Ports/ExiCon", this, );
 		}
 		bool PortExiSelect(int i) {
 			return 1;
@@ -227,10 +237,10 @@ namespace casioemu {
 			}
 		}
 
-		void SetPortInput(int port, uint8_t inputd, uint8_t outputd) override {
+		void SetPortInput(int port, uint8_t input, uint8_t input_mask) override {
 			if (port >= 0 && port < 16 && ports[port]) {
-				ports[port]->PortInput = inputd;
-				ports[port]->PortInputExists = outputd;
+				ports[port]->PortInput = input;
+				ports[port]->PortInputExists = input_mask;
 				ports[port]->UpdateStatus();
 			}
 		}

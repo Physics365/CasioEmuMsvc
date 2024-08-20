@@ -172,7 +172,7 @@ namespace casioemu {
 			auto i = this->QueryInterface(typeid(T).name());
 			if (i)
 				return (T*)i;
-			return i;
+			return nullptr;
 		}
 
 		friend class CPU;

@@ -6,6 +6,7 @@
 #include "Logger.hpp"
 #include "ModelInfo.h"
 
+#include <ML620Ports.h>
 #include <SDL.h>
 #include <chrono>
 #include <fstream>
@@ -79,56 +80,12 @@ namespace casioemu {
 
 		clock_type = CLOCK_UNDEFINED;
 		if (emulator.hardware_id == HW_TI) {
-			// P3 is KO,P4 is KI
-			//region_ko.Setup(
-			//	0xF228, 1, "Keyboard/KO", this,
-			//	[](MMURegion* region, size_t offset) {
-			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
-			//		return (uint8_t)((keyboard->keyboard_out & ~keyboard->keyboard_out_mask));
-			//	},
-			//	[](MMURegion* region, size_t offset, uint8_t data) {
-			//		// std::cout << "P3D  <-" << std::hex << (int)data << "\n";
-			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
-			//		keyboard->keyboard_out = data;
-			//		keyboard->RecalculateKI();
-			//	},
-			//	emulator);
-			//region_ko_mask.Setup(
-			//	0xF229, 1, "Keyboard/KOMask", this,
-			//	[](MMURegion* region, size_t offset) {
-			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
-			//		return (uint8_t)((keyboard->keyboard_out_mask));
-			//	},
-			//	[](MMURegion* region, size_t offset, uint8_t data) {
-			//		// std::cout << "P3DIR<-" << std::hex << (int)data << "\n";
-			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
-			//		keyboard->keyboard_out_mask = data;
-			//		keyboard->RecalculateKI();
-			//	},
-			//	emulator);
-			//// P4D
-			//region_ki.Setup(
-			//	0xF230, 1, "Keyboard/KI", this, [](MMURegion* region, size_t offset) -> uint8_t {
-			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
-			//		return ~(keyboard->keyboard_in);
-			//	},
-			//	MMURegion::IgnoreWrite, emulator);
-			 //region_pd_emu.Setup(
-				//0xF210, 1, "Keyboard/P0D", this, [](MMURegion* region, size_t offset) -> uint8_t {
-				//	Keyboard* keyboard = ((Keyboard*)region->userdata);
-				//	for (auto& kv : keyboard->buttons) {
-				//		if (kv.pressed) {
-				//			return 0;
-				//		}
-				//	}
-				//	return 0x20;
-				//},
-				//[](MMURegion* region, size_t offset, uint8_t data) {
-				//	std::cout << std::hex << data << "\n";
-				//}, emulator);
-			EXI0INT = 7 + 0;
-			// region_ki_emu.Setup(0xF210, 1, "Keyboard/EmuStatus", new uint8_t(), MMURegion::DefaultRead<uint8_t>, MMURegion::DefaultWrite<uint8_t>, emulator);
-			// region_ki_emu.Setup(0xF9A4, 1, "Keyboard/P4IS", &keyboard_in_emu, MMURegion::IgnoreRead<0xff>, MMURegion::IgnoreWrite, emulator);
+			auto pp = emulator.chipset.QueryInterface<IPortProvider>();
+			pp->SetPortOutputCallback(3, [&](uint8_t new_output) {
+				keyboard_out = new_output;
+				RecalculateKI();
+			});
+			pp->SetPortInput(4, 0, 0xff);
 			goto init_kbd;
 		}
 
@@ -375,12 +332,6 @@ namespace casioemu {
 
 	void Keyboard::Tick() {
 		if (emulator.modeldef.hardware_id == HW_TI) {
-			for (auto& kv : buttons) {
-				if (kv.pressed) {
-					emulator.chipset.MaskableInterrupts[8].TryRaise();
-					break;
-				}
-			}
 			return;
 		}
 		if (factory_test) {
@@ -643,6 +594,15 @@ namespace casioemu {
 	}
 
 	void Keyboard::RecalculateKI() {
+		if (emulator.hardware_id == HW_TI) {
+			auto pp = emulator.chipset.QueryInterface<IPortProvider>();
+			keyboard_in = 0;
+			for (auto& button : buttons)
+				if (button.type == Button::BT_BUTTON && button.pressed && button.ko_bit & keyboard_out)
+					keyboard_in |= button.ki_bit;
+			pp->SetPortInput(4, keyboard_in, 0xff);
+			return;
+		}
 		if (emulator.hardware_id == HW_FX_5800P || emulator.modeldef.legacy_ko) { // TODO: label this as legacy ko?
 			keyboard_in = 0xFF;
 			for (auto& button : buttons)
