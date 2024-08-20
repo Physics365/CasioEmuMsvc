@@ -28,12 +28,21 @@
 #include "TimerBaseCounter.hpp"
 #include "Uart.h"
 #include "WatchdogTimer.hpp"
+#include <ML620Ports.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 
 namespace casioemu {
+	void* Chipset::QueryInterface(const char* name) {
+		auto d = (void*)0;
+		for (auto& phe : peripherals) {
+			if (d = phe->QueryInterface(name))
+				return d;
+		}
+		return nullptr;
+	}
 	Chipset::Chipset(Emulator& _emulator) : emulator(_emulator), cpu(*new CPU(emulator)), mmu(*new MMU(emulator)) {
 	}
 
@@ -73,12 +82,12 @@ namespace casioemu {
 			for (size_t i = 0; i < 7; i++)
 				MaskableInterrupts[i].Setup(5, emulator);
 			for (size_t i = 0; i < 8; i++)
-				MaskableInterrupts[7 + i].Setup(5 +3 + i, emulator);
+				MaskableInterrupts[7 + i].Setup(5 + 3 + i, emulator);
 			for (size_t i = 15; i < 55; i++)
 				MaskableInterrupts[i].Setup(5, emulator);
-			MaskableInterrupts[55].Setup(53+3, emulator);
-			MaskableInterrupts[56].Setup(54+3, emulator);
-			MaskableInterrupts[57].Setup(55+3, emulator);
+			MaskableInterrupts[55].Setup(53 + 3, emulator);
+			MaskableInterrupts[56].Setup(54 + 3, emulator);
+			MaskableInterrupts[57].Setup(55 + 3, emulator);
 			for (size_t i = 58; i < 59; i++)
 				MaskableInterrupts[i].Setup(5, emulator);
 			region_int_mask.Setup(
@@ -440,8 +449,10 @@ namespace casioemu {
 
 		ioport = new IOPorts(emulator);
 		EXIhandle = new ExternalInterrupts(emulator);
-		peripherals.push_front(ioport);
-		peripherals.push_front(EXIhandle);
+		if (emulator.hardware_id != HW_TI) {
+			peripherals.push_front(ioport);
+			peripherals.push_front(EXIhandle);
+		}
 		peripherals.push_front(CreateRomWindow(emulator));
 		peripherals.push_front(CreateBatteryBackedRAM(emulator));
 		peripherals.push_front(CreateScreen(emulator));
@@ -452,6 +463,7 @@ namespace casioemu {
 			peripherals.push_front(CreateTimer(emulator));
 			peripherals.push_front(CreateWatchdog(emulator));
 			peripherals.push_front(CreateTimerBaseCounter(emulator));
+			peripherals.push_front(CreateML620Ports(emulator));
 		}
 		else {
 			peripherals.push_front(CreateTimer(emulator));

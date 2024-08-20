@@ -72,6 +72,8 @@ namespace casioemu {
 
 		bool real_hardware;
 
+		void* QueryInterface(const char* name);
+
 	public:
 		Chipset(Emulator& emulator);
 		void Setup(); // must be called after emulator.hardware_id is initialized
@@ -164,6 +166,14 @@ namespace casioemu {
 		void EmulatorTick();
 		void Frame();
 		void UIEvent(SDL_Event& event);
+
+		template <typename T>
+		T* QueryInterface() {
+			auto i = this->QueryInterface(typeid(T).name());
+			if (i)
+				return (T*)i;
+			return i;
+		}
 
 		friend class CPU;
 	};

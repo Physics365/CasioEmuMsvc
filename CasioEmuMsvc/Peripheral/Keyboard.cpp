@@ -80,39 +80,39 @@ namespace casioemu {
 		clock_type = CLOCK_UNDEFINED;
 		if (emulator.hardware_id == HW_TI) {
 			// P3 is KO,P4 is KI
-			region_ko.Setup(
-				0xF228, 1, "Keyboard/KO", this,
-				[](MMURegion* region, size_t offset) {
-					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return (uint8_t)((keyboard->keyboard_out & ~keyboard->keyboard_out_mask));
-				},
-				[](MMURegion* region, size_t offset, uint8_t data) {
-					// std::cout << "P3D  <-" << std::hex << (int)data << "\n";
-					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					keyboard->keyboard_out = data;
-					keyboard->RecalculateKI();
-				},
-				emulator);
-			region_ko_mask.Setup(
-				0xF229, 1, "Keyboard/KOMask", this,
-				[](MMURegion* region, size_t offset) {
-					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return (uint8_t)((keyboard->keyboard_out_mask));
-				},
-				[](MMURegion* region, size_t offset, uint8_t data) {
-					// std::cout << "P3DIR<-" << std::hex << (int)data << "\n";
-					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					keyboard->keyboard_out_mask = data;
-					keyboard->RecalculateKI();
-				},
-				emulator);
-			// P4D
-			region_ki.Setup(
-				0xF230, 1, "Keyboard/KI", this, [](MMURegion* region, size_t offset) -> uint8_t {
-					Keyboard* keyboard = ((Keyboard*)region->userdata);
-					return ~(keyboard->keyboard_in);
-				},
-				MMURegion::IgnoreWrite, emulator);
+			//region_ko.Setup(
+			//	0xF228, 1, "Keyboard/KO", this,
+			//	[](MMURegion* region, size_t offset) {
+			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
+			//		return (uint8_t)((keyboard->keyboard_out & ~keyboard->keyboard_out_mask));
+			//	},
+			//	[](MMURegion* region, size_t offset, uint8_t data) {
+			//		// std::cout << "P3D  <-" << std::hex << (int)data << "\n";
+			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
+			//		keyboard->keyboard_out = data;
+			//		keyboard->RecalculateKI();
+			//	},
+			//	emulator);
+			//region_ko_mask.Setup(
+			//	0xF229, 1, "Keyboard/KOMask", this,
+			//	[](MMURegion* region, size_t offset) {
+			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
+			//		return (uint8_t)((keyboard->keyboard_out_mask));
+			//	},
+			//	[](MMURegion* region, size_t offset, uint8_t data) {
+			//		// std::cout << "P3DIR<-" << std::hex << (int)data << "\n";
+			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
+			//		keyboard->keyboard_out_mask = data;
+			//		keyboard->RecalculateKI();
+			//	},
+			//	emulator);
+			//// P4D
+			//region_ki.Setup(
+			//	0xF230, 1, "Keyboard/KI", this, [](MMURegion* region, size_t offset) -> uint8_t {
+			//		Keyboard* keyboard = ((Keyboard*)region->userdata);
+			//		return ~(keyboard->keyboard_in);
+			//	},
+			//	MMURegion::IgnoreWrite, emulator);
 			 //region_pd_emu.Setup(
 				//0xF210, 1, "Keyboard/P0D", this, [](MMURegion* region, size_t offset) -> uint8_t {
 				//	Keyboard* keyboard = ((Keyboard*)region->userdata);

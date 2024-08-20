@@ -24,6 +24,7 @@
 #include "Emulator.hpp"
 #include "Gui/HwController.h"
 #include "Logger.hpp"
+#include "ML620Ports.h"
 #include "ModelInfo.h"
 #include "Models.h"
 #include "Ui.hpp"
@@ -157,7 +158,7 @@ namespace casioemu {
 					}
 					return;
 				}
-				if (!n_ram_buffer)//  || !emulator.chipset.ti_status_buf) //  || !emulator.chipset.ti_screen_buf
+				if (!n_ram_buffer) //  || !emulator.chipset.ti_status_buf) //  || !emulator.chipset.ti_screen_buf
 					return;
 				float ink_alpha_on = (ti_contrast - 100) * 20.0;
 				float ink_alpha_off = std::clamp(ink_alpha_on * 0.1, 0.0, 255.0);
@@ -593,108 +594,197 @@ namespace casioemu {
 			inited = true;
 		}
 		if constexpr (hardware_id == HW_TI) {
-			ti_port7_data.Setup(
-				0xF248, 1, "Port7/Data", this,
-				(MMURegion::ReadFunction)MMURegion::IgnoreRead<0>,
-				(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
-					auto this_obj = (Screen*)region->userdata;
-					this_obj->ti_port7 = data;
-				},
-				emulator); // f238
-			ti_port5_data.Setup(
-				0xF238, 1, "Port5/Data", this,
-				(MMURegion::ReadFunction)[](MMURegion * region, size_t offset)->uint8_t {
-					auto this_obj = (Screen*)region->userdata;
-					return this_obj->ti_port5;
-				},
-				(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
-					auto this_obj = (Screen*)region->userdata;
-					this_obj->ti_port5 = data;
-					if (this_obj->ti_a0 && !(data & 0x40)) {
-						if ((data & 0x10)) {
-							auto bit_off = this_obj->ti_col;
-							auto off = bit_off + this_obj->ti_page * 192;
-							if (off > 24 * 64) {
-								return;
-							}
-							this_obj->screen_buffer[off] = this_obj->ti_port7;
-							this_obj->ti_col++;
-							if (this_obj->ti_col >= 192) {
-								this_obj->ti_col = 0;
-								this_obj->ti_page++;
-							}
+			auto pp = emulator.chipset.QueryInterface<IPortProvider>();
+			pp->SetPortOutputCallback(7, [&](uint8_t data) {
+				ti_port7 = data;
+			});
+			pp->SetPortOutputCallback(5, [&](uint8_t data) {
+				// ti_port5 = data;
+				if (ti_a0 && !(data & 0x40)) {
+					if ((data & 0x10)) {
+						auto bit_off = ti_col;
+						auto off = bit_off + ti_page * 192;
+						if (off > 24 * 64) {
+							return;
 						}
-						else {
-							auto data = this_obj->ti_port7;
-							switch (this_obj->ti_port_status) {
-							case 0: {
-								auto dh = data >> 4;
-								if (dh == 0) {
-									this_obj->ti_col = (this_obj->ti_col & 0xf0) | (data & 0xf);
-								}
-								else if (dh == 1) {
-									this_obj->ti_col = (this_obj->ti_col & 0xf) | ((data & 0xf) << 4);
-								}
-								else if ((dh & 0b1100) == 0b0100) {
-									std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
-								}
-								else if (dh == 0b1011) {
-									// std::cout << "Set page  " << (data & 0xf) << "\n";
-									this_obj->ti_page = (data & 0xf);
-								}
-								else if ((data >> 3) == 17) {
-									std::cout << "Set addressing mode\n";
-								}
-								else if ((data >> 2) == 58) {
-									std::cout << "Set bias\n";
-								}
-								else if ((data >> 2) == 40) {
-									std::cout << "Set frame rate\n";
-								}
-								else if ((data >> 1) == 82) {
-									std::cout << "Set all display segments\n";
-								}
-								else if ((data >> 1) == 83) {
-									std::cout << "Set inverse display\n";
-								}
-								else if ((data & 0xf9) == 0xc0) {
-									std::cout << "Set Com Seg Scan Direction\n";
-								}
-								else if (data == 0xe3) {
-									std::cout << "Nop\n";
-								}
-								else if (data == 0xe2) {
-									std::cout << "Software reset\n";
-								}
-								else if (data == 0xaf) {
-									std::cout << "Enabled screen!\n";
-									this_obj->ti_enabled = 1;
-								}
-								else if (data == 0x81) {
-									this_obj->ti_port_status = 1;
-								}
-								else if (data == 0xae) {
-									std::cout << "Disabled screen!\n";
-									this_obj->ti_enabled = 0;
-								}
-								else {
-									std::cout << "Unknown " << std ::hex << (int)data << "\n"
-											  << std::dec;
-								}
-								break;
-							}
-							case 1:
-								std::cout << "Set contrast!\n";
-								this_obj->ti_contrast = data;
-								this_obj->ti_port_status = 0;
-								break;
-							}
+						screen_buffer[off] = ti_port7;
+						ti_col++;
+						if (ti_col >= 192) {
+							ti_col = 0;
+							ti_page++;
 						}
 					}
-					this_obj->ti_a0 = (data & 0x40);
-					// this_obj->ti_rw = (data & 0x10);
-				},
-				emulator);
+					else {
+						auto data = ti_port7;
+						switch (ti_port_status) {
+						case 0: {
+							auto dh = data >> 4;
+							if (dh == 0) {
+								ti_col = (ti_col & 0xf0) | (data & 0xf);
+							}
+							else if (dh == 1) {
+								ti_col = (ti_col & 0xf) | ((data & 0xf) << 4);
+							}
+							else if ((dh & 0b1100) == 0b0100) {
+								std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
+							}
+							else if (dh == 0b1011) {
+								// std::cout << "Set page  " << (data & 0xf) << "\n";
+								ti_page = (data & 0xf);
+							}
+							else if ((data >> 3) == 17) {
+								std::cout << "Set addressing mode\n";
+							}
+							else if ((data >> 2) == 58) {
+								std::cout << "Set bias\n";
+							}
+							else if ((data >> 2) == 40) {
+								std::cout << "Set frame rate\n";
+							}
+							else if ((data >> 1) == 82) {
+								std::cout << "Set all display segments\n";
+							}
+							else if ((data >> 1) == 83) {
+								std::cout << "Set inverse display\n";
+							}
+							else if ((data & 0xf9) == 0xc0) {
+								std::cout << "Set Com Seg Scan Direction\n";
+							}
+							else if (data == 0xe3) {
+								std::cout << "Nop\n";
+							}
+							else if (data == 0xe2) {
+								std::cout << "Software reset\n";
+							}
+							else if (data == 0xaf) {
+								std::cout << "Enabled screen!\n";
+								ti_enabled = 1;
+							}
+							else if (data == 0x81) {
+								ti_port_status = 1;
+							}
+							else if (data == 0xae) {
+								std::cout << "Disabled screen!\n";
+								ti_enabled = 0;
+							}
+							else {
+								std::cout << "Unknown " << std ::hex << (int)data << "\n"
+										  << std::dec;
+							}
+							break;
+						}
+						case 1:
+							std::cout << "Set contrast!\n";
+							ti_contrast = data;
+							ti_port_status = 0;
+							break;
+						}
+					}
+				}
+				ti_a0 = (data & 0x40);
+			});
+			// ti_port7_data.Setup(
+			//	0xF248, 1, "Port7/Data", this,
+			//	(MMURegion::ReadFunction)MMURegion::IgnoreRead<0>,
+			//	(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
+			//		auto this_obj = (Screen*)region->userdata;
+			//		this_obj->ti_port7 = data;
+			//	},
+			//	emulator); // f238
+			// ti_port5_data.Setup(
+			//	0xF238, 1, "Port5/Data", this,
+			//	(MMURegion::ReadFunction)[](MMURegion * region, size_t offset)->uint8_t {
+			//		auto this_obj = (Screen*)region->userdata;
+			//		return this_obj->ti_port5;
+			//	},
+			//	(MMURegion::WriteFunction)[](MMURegion * region, size_t offset, uint8_t data) {
+			//		auto this_obj = (Screen*)region->userdata;
+			//		this_obj->ti_port5 = data;
+			//		if (this_obj->ti_a0 && !(data & 0x40)) {
+			//			if ((data & 0x10)) {
+			//				auto bit_off = this_obj->ti_col;
+			//				auto off = bit_off + this_obj->ti_page * 192;
+			//				if (off > 24 * 64) {
+			//					return;
+			//				}
+			//				this_obj->screen_buffer[off] = this_obj->ti_port7;
+			//				this_obj->ti_col++;
+			//				if (this_obj->ti_col >= 192) {
+			//					this_obj->ti_col = 0;
+			//					this_obj->ti_page++;
+			//				}
+			//			}
+			//			else {
+			//				auto data = this_obj->ti_port7;
+			//				switch (this_obj->ti_port_status) {
+			//				case 0: {
+			//					auto dh = data >> 4;
+			//					if (dh == 0) {
+			//						this_obj->ti_col = (this_obj->ti_col & 0xf0) | (data & 0xf);
+			//					}
+			//					else if (dh == 1) {
+			//						this_obj->ti_col = (this_obj->ti_col & 0xf) | ((data & 0xf) << 4);
+			//					}
+			//					else if ((dh & 0b1100) == 0b0100) {
+			//						std::cout << "Set Scroll line " << (data & 0x3f) << "\n";
+			//					}
+			//					else if (dh == 0b1011) {
+			//						// std::cout << "Set page  " << (data & 0xf) << "\n";
+			//						this_obj->ti_page = (data & 0xf);
+			//					}
+			//					else if ((data >> 3) == 17) {
+			//						std::cout << "Set addressing mode\n";
+			//					}
+			//					else if ((data >> 2) == 58) {
+			//						std::cout << "Set bias\n";
+			//					}
+			//					else if ((data >> 2) == 40) {
+			//						std::cout << "Set frame rate\n";
+			//					}
+			//					else if ((data >> 1) == 82) {
+			//						std::cout << "Set all display segments\n";
+			//					}
+			//					else if ((data >> 1) == 83) {
+			//						std::cout << "Set inverse display\n";
+			//					}
+			//					else if ((data & 0xf9) == 0xc0) {
+			//						std::cout << "Set Com Seg Scan Direction\n";
+			//					}
+			//					else if (data == 0xe3) {
+			//						std::cout << "Nop\n";
+			//					}
+			//					else if (data == 0xe2) {
+			//						std::cout << "Software reset\n";
+			//					}
+			//					else if (data == 0xaf) {
+			//						std::cout << "Enabled screen!\n";
+			//						this_obj->ti_enabled = 1;
+			//					}
+			//					else if (data == 0x81) {
+			//						this_obj->ti_port_status = 1;
+			//					}
+			//					else if (data == 0xae) {
+			//						std::cout << "Disabled screen!\n";
+			//						this_obj->ti_enabled = 0;
+			//					}
+			//					else {
+			//						std::cout << "Unknown " << std ::hex << (int)data << "\n"
+			//								  << std::dec;
+			//					}
+			//					break;
+			//				}
+			//				case 1:
+			//					std::cout << "Set contrast!\n";
+			//					this_obj->ti_contrast = data;
+			//					this_obj->ti_port_status = 0;
+			//					break;
+			//				}
+			//			}
+			//		}
+			//		this_obj->ti_a0 = (data & 0x40);
+			//		// this_obj->ti_rw = (data & 0x10);
+			//	},
+			//	emulator);
 			return;
 		}
 		if (!(hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) || (!enabled_2 && (screen_power & 1))) {

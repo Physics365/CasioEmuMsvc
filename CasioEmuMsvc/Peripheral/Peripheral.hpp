@@ -35,6 +35,7 @@ namespace casioemu {
 		virtual void UIEvent(SDL_Event& event) {}
 		virtual void Reset() {}
 		virtual void ResetLSCLK() {}
+		virtual void* QueryInterface(const char*) { return 0; }
 		virtual ~Peripheral() {}
 	};
 } // namespace casioemu
