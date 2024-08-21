@@ -429,9 +429,10 @@ namespace casioemu {
 
 	void Chipset::ConstructPeripherals() {
 		// Only tested on fx-991cnx
-		BLKCON_mask = emulator.hardware_id == HW_CLASSWIZ ? 0x1F : 0xFF;
-		region_BLKCON.Setup(
-			0xF028, 1, "Chipset/BLKCON0", this, [](MMURegion* region, size_t) {
+		if (emulator.hardware_id != HW_TI) {
+			BLKCON_mask = emulator.hardware_id == HW_CLASSWIZ ? 0x1F : 0xFF;
+			region_BLKCON.Setup(
+				0xF028, 1, "Chipset/BLKCON0", this, [](MMURegion* region, size_t) {
 			Chipset* chipset = (Chipset*)region->userdata;
 			return (uint8_t)(chipset->data_BLKCON & chipset->BLKCON_mask); }, [](MMURegion* region, size_t, uint8_t data) {
 			Chipset* chipset = (Chipset*)region->userdata;
@@ -448,6 +449,7 @@ namespace casioemu {
 				else
 					peripheral->Initialise();
 			} }, emulator);
+		}
 
 		ioport = new IOPorts(emulator);
 		EXIhandle = new ExternalInterrupts(emulator);
@@ -507,7 +509,7 @@ namespace casioemu {
 			if (flash_handle.fail())
 				PANIC("std::ifstream failed: %s\n", std::strerror(errno));
 			flash_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(flash_handle)), std::istreambuf_iterator<char>());
-			flash_data.resize(0x80000,0xff);
+			flash_data.resize(0x80000, 0xff);
 			memset(&flash_data[0x20000], 0xff, 0x10000); // TODO: check clear ram flag
 			memset(&flash_data[0x30000], 0, 0x8000);
 			memset(&flash_data[0x38000], 0xff, 0x8000);
@@ -651,11 +653,23 @@ namespace casioemu {
 	}
 
 	void Chipset::RaiseSoftware(size_t index) {
-		if ((tiDiagMode || !emulator.modeldef.real_hardware) && index == 0x02) {
-			emulator.chipset.cpu.reg_r[1] = 0;
-			emulator.chipset.cpu.reg_r[0] = tiKey;
-			tiKey = 0;
-			return;
+		if (emulator.modeldef.hardware_id == HW_TI) {
+			if ((tiDiagMode || !emulator.modeldef.real_hardware) && index == 0x02) {
+				int dl = 500;
+				while (dl > 0 && tiKey == 0) {
+					SDL_Delay(24);
+					dl -= 24;
+				}
+				emulator.chipset.cpu.reg_r[1] = 0;
+				emulator.chipset.cpu.reg_r[0] = tiKey;
+				tiKey = 0;
+				return;
+			}
+			if (!emulator.modeldef.real_hardware) {
+				emulator.chipset.cpu.reg_r[1] = 0;
+				emulator.chipset.cpu.reg_r[0] = 0;
+				return;
+			}
 		}
 		index += 0x40;
 		if (interrupts_active[index])
