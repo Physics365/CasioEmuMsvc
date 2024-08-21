@@ -179,6 +179,9 @@ namespace casioemu {
 					}
 				}
 				screen_buffer = (uint8_t*)n_ram_buffer - casioemu::GetRamBaseAddr(hardware_id) + 0xe5d4;
+				if (emulator.modeldef.real_hardware) {
+					screen_buffer = this->screen_buffer + 8 * 192;
+				}
 				int x = 0;
 				for (int ix = 1; ix != SPR_MAX; ++ix) {
 					auto off = sprite_bitmap[ix].offset;
@@ -442,19 +445,19 @@ namespace casioemu {
 	template <>
 	const SpriteBitmap Screen<HW_TI>::sprite_bitmap[] = {
 		{"rsd_pixel", 0, 0},
-		{"rsd_2nd", 0x02, 0x00},
-		//{"rsd_fix", 0x04, 0x00},
-		//{"rsd_hbo", 0x08, 0x00},
-		//{"rsd_sci", 0x02, 0x01},
-		//{"rsd_eng", 0x01, 0x01},
-		//{"rsd_deg", 0x04, 0x01},
-		//{"rsd_rad", 0x08, 0x01},
-		//{"rsd_bat", 0x02, 0x02},
-		//{"rsd_wait", 0x04, 0x02},
-		//{"rsd_left", 0x08, 0x02},
-		//{"rsd_up", 0x10, 0x02},
-		//{"rsd_down", 0x20, 0x02},
-		//{"rsd_right", 0x40, 0x02},
+		{"rsd_2nd", 1, 17},
+		{"rsd_fix", 0, 0x00},
+		{"rsd_hbo", 0, 0x00},
+		{"rsd_sci", 0, 0x01},
+		{"rsd_eng", 0, 0x01},
+		{"rsd_deg", 0, 0x01},
+		{"rsd_rad", 0, 0x01},
+		{"rsd_bat", 0, 0x02},
+		{"rsd_wait", 1, 164},
+		{"rsd_left", 0, 0x02},
+		{"rsd_up", 0, 0x02},
+		{"rsd_down", 0, 0x02},
+		{"rsd_right", 0, 0x02},
 	};
 
 	template <>
@@ -568,8 +571,16 @@ namespace casioemu {
 				sprite_info[ix] = emulator.modeldef.sprites[sprite_bitmap[ix].name];
 
 			ink_colour = emulator.modeldef.ink_color;
-			screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
-			fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
+			if constexpr (hardware_id == HW_TI) {
+				screen_buffer = new uint8_t[192 * 9];
+				// TODO: remove this
+				memset(screen_buffer, 0, 192 * 9);
+				// fillRandomData(screen_buffer, 192*9);
+			}
+			else {
+				screen_buffer = new uint8_t[(N_ROW + 1) * ROW_SIZE];
+				fillRandomData(screen_buffer, (N_ROW + 1) * ROW_SIZE);
+			}
 			if constexpr (hardware_id == HW_CLASSWIZ || hardware_id == HW_CLASSWIZ_II) {
 				region_power.Setup(
 					0xF03D, 1, "Screen/Power", this,
@@ -604,8 +615,11 @@ namespace casioemu {
 					if ((data & 0x10)) {
 						auto bit_off = ti_col;
 						auto off = bit_off + ti_page * 192;
-						if (off > 24 * 64) {
+						if (off > 192 * 9) {
 							return;
+						}
+						if (off > 192 * 8) {
+							std::cout << std::dec << off - 192 * 8 << " <- 0x" << std::hex << ti_port7 << "\n";
 						}
 						screen_buffer[off] = ti_port7;
 						ti_col++;

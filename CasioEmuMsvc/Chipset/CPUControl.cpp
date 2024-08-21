@@ -215,6 +215,9 @@ namespace casioemu {
 		OP_B();
 #ifdef DBG
 		StackFrame sf{};
+		sf.er0 = reg_r[0] | (reg_r[1] << 8);
+		sf.er2 = reg_r[2] | (reg_r[3] << 8);
+		sf.sp = reg_sp;
 		sf.new_pc = reg_csr << 16 | reg_pc;
 		if (!stack->empty() && !stack->back().lr_pushed) {
 			std::cout << "[CPU][Warn] Lr get override.(BL after lr not backuped)\n";

@@ -2,18 +2,19 @@
 #include "Chipset//Chipset.hpp"
 #include "Chipset/CPU.hpp"
 #include "CodeViewer.hpp"
+#include "Config.hpp"
+#include "Models.h"
 #include "Peripheral/BatteryBackedRAM.hpp"
 #include "Ui.hpp"
 #include "imgui/imgui.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <stdlib.h>
-
-#include "Config.hpp"
-#include "Models.h"
 #include <iomanip>
+#include <ranges>
+#include <stdlib.h>
 
 void WatchWindow::PrepareRX() {
 	for (int i = 0; i < 16; i++) {
@@ -113,42 +114,26 @@ void WatchWindow::UpdateRX() {
 	m_emu->chipset.cpu.reg_sp = (uint16_t)strtol((char*)reg_sp, nullptr, 16);
 	m_emu->chipset.cpu.reg_psw = (uint16_t)strtol((char*)reg_psw, nullptr, 16);
 }
-struct SymbolAddr {
-public:
-	uint32_t addr;
-};
-inline static std::ostream& operator<<(std::ostream& os, SymbolAddr ad) {
-	auto iter = std::find_if(g_labels.begin(), g_labels.end(), [&](Label& dat) { return dat.address == ad.addr; });
-	if (iter == g_labels.end()) {
-		return os << ad.addr;
+inline static std::string lookup_symbol(uint32_t addr) {
+	auto iter = std::lower_bound(g_labels.begin(), g_labels.end(), addr,
+		[](const Label& label, uint32_t addr) { return label.address < addr; });
+
+	if (iter == g_labels.end() || iter->address > addr) {
+		if (iter != g_labels.begin())
+			--iter;
+		else {
+			char buf[20];
+			return SDL_ltoa(addr, buf, 16);
+		}
+	}
+
+	if (addr == iter->address) {
+		return iter->name;
 	}
 	else {
-		return os << iter->name;
+		char buf[20];
+		return iter->name + "+" + SDL_ltoa(addr - iter->address, buf, 16);
 	}
-}
-inline std::string GetBacktrace() {
-	std::stringstream output;
-	output << std::hex << std::setfill('0') << std::uppercase;
-	auto stack = m_emu->chipset.cpu.stack.get_const();
-	for (casioemu::CPU::StackFrame frame : *stack) {
-		output << "  function "
-			   << std::setw(6) << SymbolAddr{frame.new_pc}
-			   << " returns to " << std::setw(6);
-		if (frame.lr_pushed) {
-			output << frame.lr;
-
-			output << " - lr pushed at "
-				   << std::setw(4) << frame.lr_push_address;
-		}
-		else {
-			output << (((size_t)m_emu->chipset.cpu.reg_lcsr) << 16 | m_emu->chipset.cpu.reg_lr);
-		}
-		if (frame.is_jump) {
-			output << " (called by pop pc)";
-		}
-		output << '\n';
-	}
-	return output.str();
 }
 void WatchWindow::RenderCore() {
 	char_width = ImGui::CalcTextSize("F").x;
@@ -173,8 +158,39 @@ void WatchWindow::RenderCore() {
 	ImGui::Separator();
 	static int range = 64;
 	ImGui::BeginChild("##stack_trace", ImVec2(0, ImGui::GetWindowHeight() / 2));
-	std::string s = GetBacktrace();
-	ImGui::InputTextMultiline("##as", (char*)s.c_str(), s.size(), ImVec2(ImGui::GetWindowWidth(), -1), ImGuiInputTextFlags_ReadOnly);
+	if (ImGui::BeginTable("##Stack_trace", 6, pretty_table)) {
+		ImGui::TableSetupColumn("Function", ImGuiTableColumnFlags_WidthStretch, 1);
+		ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_WidthFixed, 60);
+		ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_WidthFixed, 40);
+		ImGui::TableSetupColumn("ER0", ImGuiTableColumnFlags_WidthFixed, 40);
+		ImGui::TableSetupColumn("ER2", ImGuiTableColumnFlags_WidthFixed, 40);
+		ImGui::TableSetupColumn("LR", ImGuiTableColumnFlags_WidthStretch, 1);
+		ImGui::TableHeadersRow();
+		auto stack = chipset.cpu.stack.get();
+		for (auto& frame : std::ranges::reverse_view(*stack)) {
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::TextUnformatted(lookup_symbol(frame.new_pc).c_str());
+			ImGui::TableNextColumn();
+			ImGui::Text("%06X",frame.new_pc);
+			ImGui::TableNextColumn();
+			ImGui::Text("%04X", frame.sp);
+			ImGui::TableNextColumn();
+			ImGui::Text("%04X", frame.er0);
+			ImGui::TableNextColumn();
+			ImGui::Text("%04X", frame.er2);
+			ImGui::TableNextColumn();
+			if (frame.lr_pushed) {
+				if (frame.lr == 0xffffff) {
+					ImGui::TextUnformatted("LR destroyed.");
+				}
+				else {
+					ImGui::TextUnformatted(lookup_symbol(frame.lr).c_str());
+				}
+			}
+		}
+		ImGui::EndTable();
+	}
 	ImGui::EndChild();
 	ImGui::BeginChild("##stack_view");
 	ImGui::Text(

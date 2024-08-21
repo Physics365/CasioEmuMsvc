@@ -136,6 +136,9 @@ namespace casioemu {
 		struct StackFrame {
 			bool lr_pushed;
 			bool is_jump;
+			uint16_t er0;
+			uint16_t er2;
+			uint16_t sp;
 			uint16_t lr_push_address;
 			uint32_t lr, new_pc;
 		};
