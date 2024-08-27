@@ -16,6 +16,8 @@ struct MemBPData_t {
 	std::unordered_map<uint32_t, Record> records;
 };
 
+void SetMemBp(uint32_t addr, bool write);
+
 class MemBreakPoint : public UIWindow {
 
 private:
@@ -39,4 +41,6 @@ public:
 	void TryTrigBp(uint32_t addr_edit, bool write);
 
 	void RenderCore() override;
+
+	void ExternalAddBp(uint32_t addr, bool write);
 };

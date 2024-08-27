@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <stdlib.h>
 
+MemBreakPoint* membp_cv = 0;
+
 void MemBreakPoint::DrawContent() {
 	ImGuiListClipper c;
 	static int selected = -1;
@@ -174,6 +176,7 @@ void MemBreakPoint::SetupHooks() {
 			TryTrigBp(mea.offset, 1);
 		}
 	});
+	membp_cv = this;
 }
 
 void MemBreakPoint::TryTrigBp(uint32_t addr, bool write) {
@@ -193,8 +196,7 @@ void MemBreakPoint::RenderCore() {
 	ImGui::EndChild();
 	ImGui::SetNextItemWidth(ImGui::CalcTextSize("F").x * 6);
 	ImGui::InputText(
-		"##addressin"
-		,
+		"##addressin",
 		buf, 10, ImGuiInputTextFlags_CharsHexadecimal);
 	ImGui::SameLine();
 	if (ImGui::Button(
@@ -218,5 +220,16 @@ void MemBreakPoint::RenderCore() {
 		ImGui::BeginChild("##findoutput");
 		DrawFindContent();
 		ImGui::EndChild();
+	}
+}
+
+void MemBreakPoint::ExternalAddBp(uint32_t addr, bool write) {
+	break_point_hash.push_back({.enableWrite = write, .addr = addr});
+	target_addr = break_point_hash.size() - 1;
+}
+
+void SetMemBp(uint32_t addr, bool write) {
+	if (membp_cv) {
+		membp_cv->ExternalAddBp(addr, write);
 	}
 }

@@ -5,6 +5,7 @@
 #include "Models.h"
 #include "Ui.hpp"
 #include "hex.hpp"
+#include "MemBreakPoint.hpp"
 float ram_edit_ov[0x100000]{};
 struct HexEditor : public UIWindow, public MemoryEditor {
 	void* data{};
@@ -23,21 +24,31 @@ struct SpansHexEditor : public UIWindow, public MemoryEditor {
 	size_t size{};
 	size_t display_base{};
 	std::vector<MarkedSpan> spans{};
+	bool open_popup = false;
+	size_t popup_p = 0;
 	SpansHexEditor(const char* name, void* data, size_t size, size_t base, std::vector<MarkedSpan> spans) : UIWindow(name), data(data), size(size), display_base(base), spans(spans) {
 		flags = ImGuiWindowFlags_NoScrollbar;
 		this->ram_edit_ov = ::ram_edit_ov;
-		ContextMenuFn = [](void* userdata) {
-			ImGui::OpenPopup("ContextMenu");
+		contextmenuuserdata = this;
+		ContextMenuFn = [](void* userdata, size_t where) {
+			((SpansHexEditor*)userdata)->open_popup = true;
+			((SpansHexEditor*)userdata)->popup_p = where;
+			// ImGui::OpenPopup("ContextMenu");
 		};
 	}
 	void RenderCore() override {
 		this->DrawContents(data, size, display_base, spans);
+		if (open_popup) {
+			ImGui::OpenPopup("ContextMenu");
+			open_popup = false;
+		}
 		if (ImGui::BeginPopup("ContextMenu")) {
-			if (ImGui::MenuItem("Option A")) {
-				// 处理Option A选择的逻辑
+			ImGui::Text("%x", popup_p);
+			if (ImGui::MenuItem("Find out what wrote to this addr")) {
+				SetMemBp(popup_p, true);
 			}
-			if (ImGui::MenuItem("Option B")) {
-				// 处理Option B选择的逻辑
+			if (ImGui::MenuItem("Find out what read this addr")) {
+				SetMemBp(popup_p, false);
 			}
 			ImGui::EndPopup();
 		}

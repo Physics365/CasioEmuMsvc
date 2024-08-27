@@ -96,7 +96,7 @@ struct MemoryEditor {
 	void (*WriteFn)(ImU8* data, size_t off, ImU8 d);   // = 0      // optional handler to write bytes.
 	bool (*HighlightFn)(const ImU8* data, size_t off); //= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
 	void* contextmenuuserdata = 0;
-	void (*ContextMenuFn)(void* userdata){};
+	void (*ContextMenuFn)(void* userdata, size_t off){};
 
 	// [Internal State]
 	bool ContentsWidthChanged;
@@ -359,7 +359,7 @@ struct MemoryEditor {
 							}
 							if (ImGui::IsItemClicked(1)) {
 								if (ContextMenuFn)
-									ContextMenuFn(contextmenuuserdata);
+									ContextMenuFn(contextmenuuserdata, addr + base_display_addr);
 							}
 						}
 					}
@@ -630,7 +630,6 @@ struct MemoryEditor {
 						ram_edit_ov[(size_t)mem_data + addr] -= 10;
 					}
 
-
 					if (DataEditingAddr == addr) {
 						// Display text input on current byte
 						bool data_write = false;
@@ -722,7 +721,7 @@ struct MemoryEditor {
 							}
 							if (ImGui::IsItemClicked(1)) {
 								if (ContextMenuFn)
-									ContextMenuFn(contextmenuuserdata);
+									ContextMenuFn(contextmenuuserdata, addr + base_display_addr);
 							}
 						}
 					}
