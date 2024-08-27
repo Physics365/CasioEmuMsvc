@@ -19,6 +19,8 @@ struct InterruptEventArgs {
 	bool handled{};
 };
 struct InstructionEventArgs {
+	uint32_t pc_before;
+	uint32_t pc_after;
 	bool should_break{};
 };
 

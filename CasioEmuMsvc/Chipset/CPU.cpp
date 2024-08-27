@@ -332,12 +332,9 @@ namespace casioemu {
 
 		emulator.chipset.isMIBlocked = false;
 
+		auto pc_before = reg_csr << 16 | reg_pc;
+
 		while (1) {
-			InstructionEventArgs iea{};
-			RaiseEvent(on_instruction, *this, iea);
-			if (iea.should_break) {
-				emulator.SetPaused(true);
-			}
 
 			impl_opcode = Fetch();
 			OpcodeSource* handler = opcode_dispatch[impl_opcode];
@@ -382,6 +379,14 @@ namespace casioemu {
 
 			if (!(handler->hint & H_DS))
 				break;
+		}
+
+		InstructionEventArgs iea{};
+		iea.pc_before = pc_before;
+		iea.pc_after = reg_csr << 16 | reg_pc;
+		RaiseEvent(on_instruction, *this, iea);
+		if (iea.should_break) {
+			emulator.SetPaused(true);
 		}
 	}
 

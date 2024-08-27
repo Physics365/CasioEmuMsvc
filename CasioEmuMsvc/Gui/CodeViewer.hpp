@@ -9,6 +9,8 @@
 typedef struct {
 	uint32_t offset;
 	char srcbuf[80];
+	bool is_label;
+	int xref_operand;
 } CodeElem;
 
 enum EmuDebugFlag {
@@ -26,6 +28,12 @@ private:
 	int max_row = 0;
 	int max_col = 0;
 	int cur_col = 0;
+	int first_col = 0;
+
+	bool stepping = false;
+	bool tracing = false;
+	uint32_t trace_bp = 0;
+	uint32_t trace_bp2 = 0;
 
 	bool is_loaded = false;
 	bool edit_active = false;

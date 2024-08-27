@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 /* Have zero padding at first if necessary.
    The number with maximum length is (1 << (binlen - 1)), equal to the smallest
    number. It is a power of 2, thus first digit cannot be hexadecimal.
@@ -36,9 +37,13 @@ inline std::string tobin(int n, int len) {
 	}
 	return retval;
 }
-std::vector<int> p_labels;
-#define LABEL_FUNCTION(x) p_labels.push_back(x)
-#define LABEL_LABEL(x) p_labels.push_back(x)
+std::map<int,bool> p_labels;
+inline void LABEL_FUNCTION(auto x) {
+	p_labels[x] = true;
+}
+inline void LABEL_LABEL(auto x) {
+	p_labels[x];
+}
 
 void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	static const char* cond[16] = {"GE ", "LT ", "GT ", "LE ", "GES", "LTS", "GTS", "LES",
@@ -50,60 +55,27 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 			out << "spinit  ";
 		}
 		else if (pc == 2) {
-			out << "start   ";
+			out << "start   $";
+			LABEL_FUNCTION(*(uint16_t*)buf);
 		}
 		else if (pc == 4) {
-			out << "brk     ";
+			out << "brk     $";
+			LABEL_FUNCTION(*(uint16_t*)buf);
 		}
 		else if (pc == 6) {
 			out << "nmice   ";
 		}
 		else if (pc == 8) {
-			out << "nmi     ";
+			out << "nmi     $";
+			LABEL_FUNCTION(*(uint16_t*)buf);
 		}
 		else {
 			if (pc <= 0x7E) {
 				auto id = (pc - 0xa) >> 1;
-				// if (id <= 3) {
-				//	out << "XI" << (id) << "INT  ";
-				// }
-				// else if (id == 4) {
-				//	out << "TM0INT  ";
-				// }
-				// else if (id <= 8) {
-				//	static int lookup[] = {256, 1024, 4096, 16384};
-				//	out << "L" << std::setw(5) << lookup[id - 5] << "  ";
-				// }
-				// else if (id == 9) {
-				//	out << "SIO0INT ";
-				// }
-				// else if (id == 10) {
-				//	out << "I2C0INT ";
-				// }
-				// else if (id == 11) {
-				//	out << "I2C1INT ";
-				// }
-				// else if (id == 12) {
-				//	out << "BENDINT ";
-				// }
-				// else if (id == 13) {
-				//	out << "BLOWINT ";
-				// }
-				// else if (id == 14) {
-				//	out << "RTCINT  ";
-				// }
-				// else if (id == 15) {
-				//	out << "AL0INT  ";
-				// }
-				// else if (id == 16) {
-				//	out << "AL1INT  ";
-				// }
-				// else {
-				out << "mi #" << std::setw(2) << (id) << "  ";
-				//}
+				out << "mi  " << std::setw(2) << (id) << "  $";
 			}
 			else {
-				out << "swi " << std::setw(2) << ((pc - 0x80) >> 1) << "   ";
+				out << "swi " << std::setw(2) << ((pc - 0x80) >> 1) << "  $";
 			}
 		}
 		out << tohex((buf[0] | (buf[1] << 8)) >> 1 << 1, 4) << "\n";
@@ -130,29 +102,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	if ((buf[0] & 0b00001111) == 0b00000001 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00001111) == 0b00000110 && (buf[1] & 0b11110000) == 0b10000000) {
-			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
-			if ((n2 == n + 1) || (m2 == m + 1)) {
-				out << "ADD     ER" << (n2) << ", ER" << (m2);
-				buf += 2;
-				return;
-			}
-		}
 		out << "ADD     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b00010000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01100000) {
-			int i2 = buf[0] >> 0 & 0b11111111, n2 = buf[1] >> 0 & 0b1111;
-			if (n2 == n + 1) {
-				out << "ADD     ER" << (n) << ", " << (short)(i | (i2 << 8));
-				buf += 2;
-				return;
-			}
-		}
-		out << "ADD     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "ADD     R" << (n) << ", " << tohex(i, 2);
 		return;
 	}
 	if ((buf[0] & 0b00011111) == 0b00000110 && (buf[1] & 0b11110001) == 0b11110000) {
@@ -187,36 +143,20 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b00100000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "AND     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "AND     R" << (n) << ", " << tohex(i, 2);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b00001111) == 0b00000111 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00001111) == 0b00000101 && (buf[1] & 0b11110000) == 0b10000000) {
-			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
-			if (m2 == m + 1 && n2 == n + 1) {
-				out << "CMP     ER" << (n) << ", ER" << (m);
-				buf += 2;
-				return;
-			}
-		}
 		out << "CMP     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01110000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01010000) {
-			int i2 = buf[0] >> 0 & 0b11111111, n2 = buf[1] >> 0 & 0b1111;
-			if (n2 == n + 1) {
-				out << "CMP     ER" << (n) << ", " << (short)(i | (i2 << 8)) << " ; Hex " << tohex(i | (i2 << 8), 4);
-				buf += 2;
-				return;
-			}
-		}
-		out << "CMP     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "CMP     R" << (n) << ", " << tohex(i, 2);
 		return;
 	}
 	if ((buf[0] & 0b00001111) == 0b00000101 && (buf[1] & 0b11110000) == 0b10000000) {
@@ -227,7 +167,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01010000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "CMPC    R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "CMPC    R" << (n) << ", "<< tohex(i, 2);
 		buf += 2;
 		return;
 	}
@@ -239,7 +179,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b10000000) == 0b00000000 && (buf[1] & 0b11110001) == 0b11100000) {
 		int i = buf[0] >> 0 & 0b1111111, n = buf[1] >> 1 & 0b111;
-		out << "MOV     ER" << (n * 2) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "MOV     ER" << (n * 2) << ", "<< tohex(i, 2);
 		buf += 2;
 		return;
 	}
@@ -251,7 +191,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b00000000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "MOV     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "MOV     R" << (n) << ", " << tohex(i, 2);
 		buf += 2;
 		return;
 	}
@@ -263,7 +203,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b00110000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "OR      R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "OR      R" << (n) << ", " << tohex(i, 2);
 		buf += 2;
 		return;
 	}
@@ -275,7 +215,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01000000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "XOR     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
+		out << "XOR     R" << (n) << ", " << tohex(i, 2);
 		buf += 2;
 		return;
 	}
@@ -288,14 +228,6 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	if ((buf[0] & 0b00001111) == 0b00001000 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00001111) == 0b00001001 && (buf[1] & 0b11110000) == 0b10000000) {
-			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
-			if (m2 == m + 1 && n2 == n + 1) {
-				out << "SUB     ER" << (n) << ", ER" << (m);
-				buf += 2;
-				return;
-			}
-		}
 		out << "SUB     R" << (n) << ", R" << (m);
 		return;
 	}
@@ -308,14 +240,6 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	if ((buf[0] & 0b00001111) == 0b00001010 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
 		buf += 2;
-		if ((buf[0] & 0b00001111) == 0b00001011 && (buf[1] & 0b11110000) == 0b10000000) {
-			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
-			if (m2 == m && n2 == n + 1) {
-				out << "SLL    ER" << (n) << ", R" << (m);
-				buf += 2;
-				return;
-			}
-		}
 		out << "SLL     R" << (n) << ", R" << (m);
 		return;
 	}
@@ -543,7 +467,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11111111) == 0b11100001) {
 		int i = buf[0] >> 0 & 0b11111111;
-		out << "ADD     SP, " << (signedtohex(i, 8)) << " ; dec " << (i);
+		out << "ADD     SP, " << (signedtohex(i, 8));
 		buf += 2;
 		return;
 	}
@@ -647,6 +571,12 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		buf += 2;
 		return;
 	}
+	if ((buf[0] & 0b11111111) == 0b00011110 && (buf[1] & 0b11110001) == 0b11110000) {
+		int n = buf[1] >> 1 & 0b111;
+		out << "POP     ER" << (n * 2);
+		buf += 2;
+		return;
+	}
 	if ((buf[0] & 0b11111111) == 0b00111110 && (buf[1] & 0b11110111) == 0b11110000) {
 		int n = buf[1] >> 3 & 0b1;
 		out << "POP     QR" << (n * 8);
@@ -672,6 +602,10 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 			<< (e ? "PSW " : "")
 			<< (p ? "PC " : "")
 			<< (a ? "EA " : "");
+		if (p) {
+			// in this case, we dont hope the controlflow gets extended, lets just define a funciton at next instruction
+			LABEL_FUNCTION(pc + 2);
+		}
 		buf += 2;
 		return;
 	}
@@ -809,7 +743,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b10001111) == 0b00000000 && (buf[1] & 0b11110000) == 0b10100000) {
 		int b = buf[0] >> 4 & 0b111, n = buf[1] >> 0 & 0b1111;
-		out << "SB      R" << (n) << "." << (b) << " ; Set bit to 1;Test bit";
+		out << "SB      R" << (n) << "." << (b);
 		buf += 2;
 		return;
 	}
@@ -858,7 +792,11 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		}
 		else {
 			LABEL_LABEL(addr);
-			out << "B" << (cond[c]) << "    " << (tohex(addr, 5));
+			if (c == 14) { // BAL
+				// in this case, we dont hope the controlflow gets extended, lets just define a funciton at next instruction
+				LABEL_FUNCTION(pc + 2);
+			}
+			out << "B" << (cond[c]) << "    $" << (tohex(addr, 5));
 		}
 		buf += 2;
 		return;
@@ -878,6 +816,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11111111) == 0b11111111 && (buf[1] & 0b11111111) == 0b11111111) {
 		out << "BRK";
+		LABEL_FUNCTION(pc + 2);
 		buf += 2;
 		return;
 	}
@@ -917,11 +856,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11111111) == 0b00011111 && (buf[1] & 0b11111111) == 0b11111110) {
 		out << "RT";
+		LABEL_FUNCTION(pc + 2);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00001111 && (buf[1] & 0b11111111) == 0b11111110) {
 		out << "RTI";
+		LABEL_FUNCTION(pc + 2);
 		buf += 2;
 		return;
 	}
@@ -1012,7 +953,9 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		int C = buf[2] >> 0 & 0b11111111, D = buf[3] >> 0 & 0b11111111, g = buf[1] >> 0 & 0b1111;
 		auto addr = (g << 16) | (D << 8) | (C);
 		LABEL_FUNCTION(addr);
-		out << "B       " << (tohex(addr, 5));
+		out << "B       $" << (tohex(addr, 5));
+		// in this case, we dont hope the controlflow gets extended, lets just define a funciton at next instruction
+		LABEL_FUNCTION(pc + 4);
 		buf += 4;
 		return;
 	}
@@ -1020,7 +963,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		int C = buf[2] >> 0 & 0b11111111, D = buf[3] >> 0 & 0b11111111, g = buf[1] >> 0 & 0b1111;
 		auto addr = (g << 16) | (D << 8) | (C);
 		LABEL_FUNCTION(addr);
-		out << "BL      " << (tohex(addr, 5));
+		out << "BL      $" << (tohex(addr, 5));
 		buf += 4;
 		return;
 	}
