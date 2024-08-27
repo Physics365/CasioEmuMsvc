@@ -1,5 +1,4 @@
 ﻿#include "BatteryBackedRAM.hpp"
-
 #include "Chipset/Chipset.hpp"
 #include "Chipset/MMU.hpp"
 #include "Emulator.hpp"
@@ -18,20 +17,34 @@ inline void fillRandomData(unsigned char* buf, size_t size) {
 }
 
 namespace casioemu {
-	class BatteryBackedRAM : public Peripheral {
-		MMURegion region, region_2, region_3, region_4, region_5;
+	class BatteryBackedRAM : public Peripheral, public IRam {
+		MMURegion region{}, region_2{}, region_3{}, region_4{}, region_5{};
 
-		size_t ram_size;
-		bool ram_file_requested;
+		size_t ram_size{};
+		bool ram_file_requested{};
 
 	public:
 		using Peripheral::Peripheral;
-		uint8_t* ram_buffer;
-		uint8_t* pram_buffer;
+		uint8_t* ram_buffer{};
+		uint8_t* pram_buffer{};
 		void Initialise();
 		void Uninitialise();
 		void SaveRAMImage();
 		void LoadRAMImage();
+
+		// 通过 IRam 继承
+		void* GetRam() override {
+			return ram_buffer;
+		}
+		void* GetPRam() override {
+			return pram_buffer;
+		}
+		virtual void* QueryInterface(const char* name) {
+			if (strcmp(name, typeid(IRam).name()) == 0) {
+				return (IRam*)this;
+			}
+			return 0; 
+		}
 	};
 	void BatteryBackedRAM::Initialise() {
 		bool real_hardware = emulator.modeldef.real_hardware;

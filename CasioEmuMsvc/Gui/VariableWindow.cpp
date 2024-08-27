@@ -2,7 +2,7 @@
 #include "CwiiHelp.h"
 #include "Models.h"
 #include "imgui/imgui.h"
-#include "ui.hpp"
+#include "Ui.hpp"
 #include <string>
 std::string to_hex(unsigned int num) {
 	std::string hex_digits = "0123456789ABCDEF";

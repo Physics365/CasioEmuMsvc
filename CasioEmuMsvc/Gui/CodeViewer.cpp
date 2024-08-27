@@ -37,6 +37,7 @@ CodeElem CodeViewer::LookUp(uint32_t offset, int* idx) {
 		*idx = it - codes.begin();
 	return {.offset = it->offset};
 }
+CodeViewer* cv_a;
 
 void CodeViewer::SetupHooks() {
 	SetupHook(on_instruction,
@@ -57,6 +58,13 @@ void CodeViewer::SetupHooks() {
 				iea.should_break = true;
 			}
 		});
+	cv_a = this;
+}
+void SetDebugbreak(void) {
+	if (cv_a) {
+		cv_a->ExternalBP();
+		m_emu->SetPaused(true);
+	}
 }
 
 void CodeViewer::PrepareDisasm() {
@@ -90,7 +98,7 @@ bool CodeViewer::TryTrigBP(uint8_t seg, uint16_t offset, bool bp_mode) {
 		if (it->second == 1) {
 			// TODO: We ignore a second trigger
 			CodeElem e = codes[it->first];
-			if (e.offset == ((seg << 16) | offset)) {
+			if (e.offset == pc_cache) {
 				break_points[it->first] = 2;
 				cur_col = it->first;
 				need_roll = true;
@@ -100,13 +108,22 @@ bool CodeViewer::TryTrigBP(uint8_t seg, uint16_t offset, bool bp_mode) {
 	}
 	if (!bp_mode && (debug_flags & DEBUG_STEP || debug_flags & DEBUG_RET_TRACE)) {
 		int idx = 0;
-		LookUp((seg << 16) | offset, &idx);
+		LookUp(pc_cache, &idx);
 		break_points[idx] = 2;
 		cur_col = idx;
 		need_roll = true;
 		return true;
 	}
 	return false;
+}
+
+void CodeViewer::ExternalBP() {
+	int idx = 0;
+	LookUp(pc_cache, &idx);
+	break_points[idx] = 2;
+	cur_col = idx;
+	need_roll = true;
+	return;
 }
 
 void CodeViewer::DrawContent() {
@@ -119,25 +136,25 @@ void CodeViewer::DrawContent() {
 			auto it = break_points.find(line_i);
 			auto bb = it == break_points.end();
 			if (e.offset == pc_cache) {
-				ImGui::TextColored(ImVec4(0.0, 1.0, 0.0, 1.0), "[ > ]");
+				ImGui::TextColored(ImVec4(0.0, 1.0, 0.0, 1.0), "  >  ");
 			}
 			else {
 				if (bb) {
-					ImGui::Text("[ o ]");
+					ImGui::Text("     ");
 					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
 						break_points[line_i] = 1;
 					}
 				}
 				else {
 					if (it->second == 1) {
-						ImGui::TextColored(ImVec4(1.0, 0.0, 0.0, 1.0), "[ x ]");
+						ImGui::TextColored(ImVec4(1.0, 0.0, 0.0, 1.0), "  x  ");
 						if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
 							break_points.erase(line_i);
 						}
 					}
 					else {
 						break_points.erase(line_i);
-						ImGui::Text("[ o ]");
+						ImGui::Text("  o  ");
 					}
 				}
 			}

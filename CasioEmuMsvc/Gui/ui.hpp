@@ -10,6 +10,8 @@ extern char* n_ram_buffer;
 extern casioemu::MMU* me_mmu;
 extern casioemu::Emulator* m_emu;
 extern std::vector<Label> g_labels;
+
+void SetDebugbreak(void);
 class UIWindow {
 public:
 	UIWindow(const char* name) : name(name) {}

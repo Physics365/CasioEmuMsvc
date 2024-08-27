@@ -3,8 +3,8 @@
 #include "Chipset/Chipset.hpp"
 #include "Emulator.hpp"
 #include "Gui/Hooks.h"
+#include "Ui.hpp"
 #include "imgui/imgui.h"
-#include "ui.hpp"
 #include <cstdint>
 #include <cstdlib>
 #include <stdlib.h>
@@ -116,9 +116,9 @@ void MemBreakPoint::DrawFindContent() {
 		ImGui::TableSetupColumn("PC: ");
 		ImGui::TableSetupColumn(
 #if LANGUAGE == 2
-			"模式:"
+			""
 #else
-			"RW:"
+			""
 #endif
 		);
 		ImGui::TableHeadersRow();
@@ -147,16 +147,36 @@ void MemBreakPoint::DrawFindContent() {
 
 void MemBreakPoint::SetupHooks() {
 	SetupHook(on_memory_read, [&](casioemu::MMU& sender, MemoryEventArgs& mea) {
-		TryTrigBp(mea.offset, 0);
+		if (break_on_cv) {
+			if (target_addr == -1) {
+				return;
+			}
+			MemBPData_t& bp = break_point_hash.at(target_addr);
+			if (bp.addr == mea.offset && !bp.enableWrite) {
+				SetDebugbreak();
+			}
+		}
+		else {
+			TryTrigBp(mea.offset, 0);
+		}
 	});
 	SetupHook(on_memory_write, [&](casioemu::MMU& sender, MemoryEventArgs& mea) {
-		TryTrigBp(mea.offset, 1);
+		if (break_on_cv) {
+			if (target_addr == -1) {
+				return;
+			}
+			MemBPData_t& bp = break_point_hash.at(target_addr);
+			if (bp.addr == mea.offset && bp.enableWrite) {
+				SetDebugbreak();
+			}
+		}
+		else {
+			TryTrigBp(mea.offset, 1);
+		}
 	});
 }
 
 void MemBreakPoint::TryTrigBp(uint32_t addr, bool write) {
-	if (!this)
-		return;
 	if (target_addr == -1) {
 		return;
 	}
@@ -168,16 +188,12 @@ void MemBreakPoint::TryTrigBp(uint32_t addr, bool write) {
 
 void MemBreakPoint::RenderCore() {
 	static char buf[10] = {0};
-	ImGui::BeginChild("##srcollingmbp", ImVec2(0, ImGui::GetWindowHeight() / 3));
+	ImGui::BeginChild("##srcollingmbp", ImVec2(0, break_on_cv ? ImGui::GetWindowHeight() - ImGui::GetTextLineHeightWithSpacing() * 6 : ImGui::GetWindowHeight() / 3));
 	DrawContent();
 	ImGui::EndChild();
-	ImGui::SetNextItemWidth(ImGui::CalcTextSize("F").x * 4);
+	ImGui::SetNextItemWidth(ImGui::CalcTextSize("F").x * 6);
 	ImGui::InputText(
-#if LANGUAGE == 2
-		"地址:"
-#else
-		"Address:"
-#endif
+		"##addressin"
 		,
 		buf, 10, ImGuiInputTextFlags_CharsHexadecimal);
 	ImGui::SameLine();
@@ -190,7 +206,17 @@ void MemBreakPoint::RenderCore() {
 			)) {
 		break_point_hash.push_back({.addr = (uint32_t)strtol(buf, nullptr, 16)});
 	}
-	ImGui::BeginChild("##findoutput");
-	DrawFindContent();
-	ImGui::EndChild();
+	ImGui::Checkbox(
+#if LANGUAGE == 2
+		"在Code中显示"
+#else
+		"Break on op"
+#endif
+		,
+		&break_on_cv);
+	if (!break_on_cv) {
+		ImGui::BeginChild("##findoutput");
+		DrawFindContent();
+		ImGui::EndChild();
+	}
 }

@@ -41,6 +41,7 @@ public:
 	void SetupHooks();
 	void PrepareDisasm();
 	bool TryTrigBP(uint8_t seg, uint16_t offset, bool bp_mode = true);
+	void ExternalBP();
 	CodeElem LookUp(uint32_t offset, int* idx = 0);
 	void RenderCore() override;
 	void DrawContent();

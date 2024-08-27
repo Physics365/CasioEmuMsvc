@@ -441,7 +441,7 @@ namespace casioemu {
 	template <>
 	const int Screen<HW_TI>::ROW_SIZE_DISP = 24;
 	template <>
-	const int Screen<HW_TI>::SPR_MAX = 2;
+	const int Screen<HW_TI>::SPR_MAX = 14;
 	template <>
 	const SpriteBitmap Screen<HW_TI>::sprite_bitmap[] = {
 		{"rsd_pixel", 0, 0},

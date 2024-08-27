@@ -1,4 +1,4 @@
-﻿#include "ui.hpp"
+﻿#include "Ui.hpp"
 #include "CallAnalysis.h"
 #include "CasioData.h"
 #include "Chipset/Chipset.hpp"
@@ -10,6 +10,7 @@
 #include "LabelFile.h"
 #include "LabelViewer.h"
 #include "MemBreakpoint.hpp"
+#include "5800FileSystem.h"
 #include "VariableWindow.h"
 #include "WatchWindow.hpp"
 #include "imgui/imgui.h"
@@ -60,6 +61,7 @@ inline const ImWchar* GetKanji() {
 	};
 	return &ranges[0];
 }
+
 void gui_loop() {
 	if (!m_emu->Running())
 		return;
@@ -135,6 +137,10 @@ int test_gui(bool* guiCreated) {
 		std::this_thread::sleep_for(std::chrono::microseconds(1));
 
 	g_labels = parseFile(m_emu->GetModelFilePath("labels"));
+
+	if (m_emu->hardware_id == casioemu::HW_FX_5800P) {
+		windows.push_back(CreateFx5800FileSystem());
+	}
 
 	for (auto item : std::initializer_list<UIWindow*>{
 			 new VariableWindow(),

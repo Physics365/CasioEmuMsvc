@@ -7,7 +7,7 @@
 #include "Gui/imgui/imgui_impl_sdlrenderer2.h"
 #include "ModelInfo.h"
 #include "Romu.h"
-#include "ui.hpp"
+#include "Ui.hpp"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <array>

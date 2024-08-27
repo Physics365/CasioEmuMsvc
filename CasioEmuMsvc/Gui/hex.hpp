@@ -95,6 +95,8 @@ struct MemoryEditor {
 	ImU8 (*ReadFn)(const ImU8* data, size_t off);	   // = 0      // optional handler to read bytes.
 	void (*WriteFn)(ImU8* data, size_t off, ImU8 d);   // = 0      // optional handler to write bytes.
 	bool (*HighlightFn)(const ImU8* data, size_t off); //= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
+	void* contextmenuuserdata = 0;
+	void (*ContextMenuFn)(void* userdata){};
 
 	// [Internal State]
 	bool ContentsWidthChanged;
@@ -350,9 +352,15 @@ struct MemoryEditor {
 							else
 								ImGui::Text(format_byte_space, b);
 						}
-						if (!ReadOnly && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-							DataEditingTakeFocus = true;
-							data_editing_addr_next = addr;
+						if (ImGui::IsItemHovered()) {
+							if (ImGui::IsMouseClicked(0)) {
+								DataEditingTakeFocus = !ReadOnly;
+								data_editing_addr_next = addr;
+							}
+							if (ImGui::IsItemClicked(1)) {
+								if (ContextMenuFn)
+									ContextMenuFn(contextmenuuserdata);
+							}
 						}
 					}
 				}
@@ -707,9 +715,15 @@ struct MemoryEditor {
 							else
 								ImGui::Text(format_byte_space, b);
 						}
-						if (!ReadOnly && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-							DataEditingTakeFocus = true;
-							data_editing_addr_next = addr;
+						if (ImGui::IsItemHovered()) {
+							if (ImGui::IsMouseClicked(0)) {
+								DataEditingTakeFocus = !ReadOnly;
+								data_editing_addr_next = addr;
+							}
+							if (ImGui::IsItemClicked(1)) {
+								if (ContextMenuFn)
+									ContextMenuFn(contextmenuuserdata);
+							}
 						}
 					}
 				}

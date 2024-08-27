@@ -1,6 +1,7 @@
 ﻿#include <iomanip>
 #include <iostream>
 #include <string>
+#include <vector>
 /* Have zero padding at first if necessary.
    The number with maximum length is (1 << (binlen - 1)), equal to the smallest
    number. It is a power of 2, thus first digit cannot be hexadecimal.
@@ -35,9 +36,13 @@ inline std::string tobin(int n, int len) {
 	}
 	return retval;
 }
+std::vector<int> p_labels;
+#define LABEL_FUNCTION(x) p_labels.push_back(x)
+#define LABEL_LABEL(x) p_labels.push_back(x)
+
 void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	static const char* cond[16] = {"GE ", "LT ", "GT ", "LE ", "GES", "LTS", "GTS", "LES",
-		"NE ", "EQ ", "NV ", "OV ", "PS ", "NS ", "AL ", "??? "};
+		"NE ", "EQ ", "NV ", "OV ", "PS ", "NS ", "   ", ""};
 
 	// Handles vector table
 	if (pc <= 0xFE) {
@@ -45,7 +50,7 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 			out << "spinit  ";
 		}
 		else if (pc == 2) {
-			out << "START   ";
+			out << "start   ";
 		}
 		else if (pc == 4) {
 			out << "brk     ";
@@ -54,51 +59,51 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 			out << "nmice   ";
 		}
 		else if (pc == 8) {
-			out << "WDTINT  ";
+			out << "nmi     ";
 		}
 		else {
 			if (pc <= 0x7E) {
 				auto id = (pc - 0xa) >> 1;
-				if (id <= 3) {
-					out << "XI" << (id) << "INT  ";
-				}
-				else if (id == 4) {
-					out << "TM0INT  ";
-				}
-				else if (id <= 8) {
-					static int lookup[] = {256,1024,4096,16384};
-					out << "L" << std::setw(5) << lookup[id - 5] << "  ";
-				}
-				else if (id == 9) {
-					out << "SIO0INT ";
-				}
-				else if (id == 10) {
-					out << "I2C0INT ";
-				}
-				else if (id == 11) {
-					out << "I2C1INT ";
-				}
-				else if (id == 12) {
-					out << "BENDINT ";
-				}
-				else if (id == 13) {
-					out << "BLOWINT ";
-				}
-				else if (id == 14) {
-					out << "RTCINT  ";
-				}
-				else if (id == 15) {
-					out << "AL0INT  ";
-				}
-				else if (id == 16) {
-					out << "AL1INT  ";
-				}
-				else {
-					out << "mi #" << std::setw(2) << (id) << "  ";
-				}
+				// if (id <= 3) {
+				//	out << "XI" << (id) << "INT  ";
+				// }
+				// else if (id == 4) {
+				//	out << "TM0INT  ";
+				// }
+				// else if (id <= 8) {
+				//	static int lookup[] = {256, 1024, 4096, 16384};
+				//	out << "L" << std::setw(5) << lookup[id - 5] << "  ";
+				// }
+				// else if (id == 9) {
+				//	out << "SIO0INT ";
+				// }
+				// else if (id == 10) {
+				//	out << "I2C0INT ";
+				// }
+				// else if (id == 11) {
+				//	out << "I2C1INT ";
+				// }
+				// else if (id == 12) {
+				//	out << "BENDINT ";
+				// }
+				// else if (id == 13) {
+				//	out << "BLOWINT ";
+				// }
+				// else if (id == 14) {
+				//	out << "RTCINT  ";
+				// }
+				// else if (id == 15) {
+				//	out << "AL0INT  ";
+				// }
+				// else if (id == 16) {
+				//	out << "AL1INT  ";
+				// }
+				// else {
+				out << "mi #" << std::setw(2) << (id) << "  ";
+				//}
 			}
 			else {
-				out << "swi #" << std::setw(2) << ((pc - 0x80) >> 1) << "   ";
+				out << "swi " << std::setw(2) << ((pc - 0x80) >> 1) << "   ";
 			}
 		}
 		out << tohex((buf[0] | (buf[1] << 8)) >> 1 << 1, 4) << "\n";
@@ -124,14 +129,30 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 
 	if ((buf[0] & 0b00001111) == 0b00000001 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
-		out << "ADD     R" << (n) << ", R" << (m);
 		buf += 2;
+		if ((buf[0] & 0b00001111) == 0b00000110 && (buf[1] & 0b11110000) == 0b10000000) {
+			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
+			if ((n2 == n + 1) || (m2 == m + 1)) {
+				out << "ADD     ER" << (n2) << ", ER" << (m2);
+				buf += 2;
+				return;
+			}
+		}
+		out << "ADD     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b00010000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "ADD     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
 		buf += 2;
+		if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01100000) {
+			int i2 = buf[0] >> 0 & 0b11111111, n2 = buf[1] >> 0 & 0b1111;
+			if (n2 == n + 1) {
+				out << "ADD     ER" << (n) << ", " << (short)(i | (i2 << 8));
+				buf += 2;
+				return;
+			}
+		}
+		out << "ADD     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
 		return;
 	}
 	if ((buf[0] & 0b00011111) == 0b00000110 && (buf[1] & 0b11110001) == 0b11110000) {
@@ -172,14 +193,30 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00001111) == 0b00000111 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
-		out << "CMP     R" << (n) << ", R" << (m);
 		buf += 2;
+		if ((buf[0] & 0b00001111) == 0b00000101 && (buf[1] & 0b11110000) == 0b10000000) {
+			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
+			if (m2 == m + 1 && n2 == n + 1) {
+				out << "CMP     ER" << (n) << ", ER" << (m);
+				buf += 2;
+				return;
+			}
+		}
+		out << "CMP     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01110000) {
 		int i = buf[0] >> 0 & 0b11111111, n = buf[1] >> 0 & 0b1111;
-		out << "CMP     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
 		buf += 2;
+		if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b01010000) {
+			int i2 = buf[0] >> 0 & 0b11111111, n2 = buf[1] >> 0 & 0b1111;
+			if (n2 == n + 1) {
+				out << "CMP     ER" << (n) << ", " << (short)(i | (i2 << 8)) << " ; Hex " << tohex(i | (i2 << 8), 4);
+				buf += 2;
+				return;
+			}
+		}
+		out << "CMP     R" << (n) << ", " << (i) << " ; Hex " << tohex(i, 2);
 		return;
 	}
 	if ((buf[0] & 0b00001111) == 0b00000101 && (buf[1] & 0b11110000) == 0b10000000) {
@@ -250,8 +287,16 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00001111) == 0b00001000 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
-		out << "SUB     R" << (n) << ", R" << (m);
 		buf += 2;
+		if ((buf[0] & 0b00001111) == 0b00001001 && (buf[1] & 0b11110000) == 0b10000000) {
+			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
+			if (m2 == m + 1 && n2 == n + 1) {
+				out << "SUB     ER" << (n) << ", ER" << (m);
+				buf += 2;
+				return;
+			}
+		}
+		out << "SUB     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b00001111) == 0b00001001 && (buf[1] & 0b11110000) == 0b10000000) {
@@ -262,8 +307,16 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b00001111) == 0b00001010 && (buf[1] & 0b11110000) == 0b10000000) {
 		int m = buf[0] >> 4 & 0b1111, n = buf[1] >> 0 & 0b1111;
-		out << "SLL     R" << (n) << ", R" << (m);
 		buf += 2;
+		if ((buf[0] & 0b00001111) == 0b00001011 && (buf[1] & 0b11110000) == 0b10000000) {
+			int m2 = buf[0] >> 4 & 0b1111, n2 = buf[1] >> 0 & 0b1111;
+			if (m2 == m && n2 == n + 1) {
+				out << "SLL    ER" << (n) << ", R" << (m);
+				buf += 2;
+				return;
+			}
+		}
+		out << "SLL     R" << (n) << ", R" << (m);
 		return;
 	}
 	if ((buf[0] & 0b10001111) == 0b00001010 && (buf[1] & 0b11110000) == 0b10010000) {
@@ -340,13 +393,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11000000) == 0b00000000 && (buf[1] & 0b11110001) == 0b10110000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 1 & 0b111;
-		out << "L       ER" << (n * 2) << ", " << dsr_prefix << "BP[" << (signedtohex(D, 6)) << "] ; ER12";
+		out << "L       ER" << (n * 2) << ", " << dsr_prefix << "ER12[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11000000) == 0b01000000 && (buf[1] & 0b11110001) == 0b10110000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 1 & 0b111;
-		out << "L       ER" << (n * 2) << ", " << dsr_prefix << "FP[" << (signedtohex(D, 6)) << "] ; ER14";
+		out << "L       ER" << (n * 2) << ", " << dsr_prefix << "ER14[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
@@ -370,13 +423,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b11010000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 0 & 0b1111;
-		out << "L       R" << (n) << ", " << dsr_prefix << "BP[" << (signedtohex(D, 6)) << "] ; ER12";
+		out << "L       R" << (n) << ", " << dsr_prefix << "ER12[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11000000) == 0b01000000 && (buf[1] & 0b11110000) == 0b11010000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 0 & 0b1111;
-		out << "L       R" << (n) << ", " << dsr_prefix << "FP[" << (signedtohex(D, 6)) << "] ; ER14";
+		out << "L       R" << (n) << ", " << dsr_prefix << "ER14[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
@@ -424,13 +477,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11000000) == 0b10000000 && (buf[1] & 0b11110001) == 0b10110000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 1 & 0b111;
-		out << "ST      ER" << (n * 2) << ", " << dsr_prefix << "BP[" << (signedtohex(D, 6)) << "] ; ER12";
+		out << "ST      ER" << (n * 2) << ", " << dsr_prefix << "ER12[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11000000) == 0b11000000 && (buf[1] & 0b11110001) == 0b10110000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 1 & 0b111;
-		out << "ST      ER" << (n * 2) << ", " << dsr_prefix << "FP[" << (signedtohex(D, 6)) << "] ; ER14";
+		out << "ST      ER" << (n * 2) << ", " << dsr_prefix << "ER14[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
@@ -454,13 +507,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11000000) == 0b10000000 && (buf[1] & 0b11110000) == 0b11010000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 0 & 0b1111;
-		out << "ST      R" << (n) << ", " << dsr_prefix << "BP[" << (signedtohex(D, 6)) << "] ; ER12";
+		out << "ST      R" << (n) << ", " << dsr_prefix << "ER12[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11000000) == 0b11000000 && (buf[1] & 0b11110000) == 0b11010000) {
 		int D = buf[0] >> 0 & 0b111111, n = buf[1] >> 0 & 0b1111;
-		out << "ST      R" << (n) << ", " << dsr_prefix << "FP[" << (signedtohex(D, 6)) << "] ; ER14";
+		out << "ST      R" << (n) << ", " << dsr_prefix << "ER14[" << (signedtohex(D, 6)) << "]";
 		buf += 2;
 		return;
 	}
@@ -584,32 +637,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		buf += 2;
 		return;
 	}
-	if ((buf[0] & 0b11111111) == 0b11001110 && (buf[1] & 0b11110001) == 0b11110001) {
-		int e = buf[1] >> 2 & 0b1, l = buf[1] >> 3 & 0b1, p = buf[1] >> 1 & 0b1;
-		out << "PUSH    " << (l == 1 ? "LR, " : "") << (e == 1 ? "EPSW, " : "") << (p == 1 ? "ELR, " : "") << "EA";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b11001110 && (buf[1] & 0b11110011) == 0b11110010) {
-		int e = buf[1] >> 2 & 0b1, l = buf[1] >> 3 & 0b1;
-		out << "PUSH    " << (l == 1 ? "LR, " : "") << (e == 1 ? "EPSW, " : "") << "ELR";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b11001110 && (buf[1] & 0b11110111) == 0b11110100) {
-		int l = buf[1] >> 3 & 0b1;
-		out << "PUSH    " << (l == 1 ? "LR, " : "") << "EPSW";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b11001110 && (buf[1] & 0b11111111) == 0b11111000) {
-		out << "PUSH    LR";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b00011110 && (buf[1] & 0b11110001) == 0b11110000) {
-		int n = buf[1] >> 1 & 0b111;
-		out << "POP     ER" << (n * 2);
+	if ((buf[0] & 0b11111111) == 0b11001110 && (buf[1] & 0b11110000) == 0b11110000) {
+		int l = buf[1] >> 3 & 0b1, e = buf[1] >> 2 & 0b1, p = buf[1] >> 1 & 0b1, a = buf[1] & 0b1;
+		out << "PUSH    "
+			<< (l ? "LR " : "")
+			<< (e ? "EPSW " : "")
+			<< (p ? "ELR " : "")
+			<< (a ? "EA " : "");
 		buf += 2;
 		return;
 	}
@@ -631,26 +665,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		buf += 2;
 		return;
 	}
-	if ((buf[0] & 0b11111111) == 0b10001110 && (buf[1] & 0b11110001) == 0b11110001) {
-		int e = buf[1] >> 2 & 0b1, l = buf[1] >> 3 & 0b1, p = buf[1] >> 1 & 0b1;
-		out << "POP     " << (l == 1 ? "LR, " : "") << (e == 1 ? "PSW, " : "") << (p == 1 ? "PC, " : "") << "EA";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b10001110 && (buf[1] & 0b11110011) == 0b11110010) {
-		int e = buf[1] >> 2 & 0b1, l = buf[1] >> 3 & 0b1;
-		out << "POP     " << (l == 1 ? "LR, " : "") << (e == 1 ? "PSW, " : "") << "PC";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b10001110 && (buf[1] & 0b11110111) == 0b11110100) {
-		int l = buf[1] >> 3 & 0b1;
-		out << "POP     " << (l == 1 ? "LR, " : "") << "PSW";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b11111111) == 0b10001110 && (buf[1] & 0b11111111) == 0b11111000) {
-		out << "POP     LR";
+	if ((buf[0] & 0b11111111) == 0b10001110 && (buf[1] & 0b11110000) == 0b11110000) {
+		int l = buf[1] >> 3 & 0b1, e = buf[1] >> 2 & 0b1, p = buf[1] >> 1 & 0b1, a = buf[1] & 0b1;
+		out << "POP     "
+			<< (l ? "LR " : "")
+			<< (e ? "PSW " : "")
+			<< (p ? "PC " : "")
+			<< (a ? "EA " : "");
 		buf += 2;
 		return;
 	}
@@ -770,13 +791,13 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b11111111) == 0b00011111 && (buf[1] & 0b11110000) == 0b10000000) {
 		int n = buf[1] >> 0 & 0b1111;
-		out << "DAA     R" << (n) << " ; decimal adjustment add";
+		out << "DAA     R" << (n);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00111111 && (buf[1] & 0b11110000) == 0b10000000) {
 		int n = buf[1] >> 0 & 0b1111;
-		out << "DAS     R" << (n) << " ; decimal adjustment sub";
+		out << "DAS     R" << (n);
 		buf += 2;
 		return;
 	}
@@ -794,67 +815,69 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b10001111) == 0b00000010 && (buf[1] & 0b11110000) == 0b10100000) {
 		int b = buf[0] >> 4 & 0b111, n = buf[1] >> 0 & 0b1111;
-		out << "RB      R" << (n) << "." << (b) << " ; Set bit to 0;Test bit";
+		out << "RB      R" << (n) << "." << (b);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b10001111) == 0b00000001 && (buf[1] & 0b11110000) == 0b10100000) {
 		int b = buf[0] >> 4 & 0b111, n = buf[1] >> 0 & 0b1111;
-		out << "TB      R" << (n) << "." << (b) << " ; Test bit";
+		out << "TB      R" << (n) << "." << (b);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00001000 && (buf[1] & 0b11111111) == 0b11101101) {
-		out << "EI                       ; Enable Maskable Interrupts";
+		out << "EI";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b11110111 && (buf[1] & 0b11111111) == 0b11101011) {
-		out << "DI                       ; Disable Maskable Interrupts";
+		out << "DI";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b10000000 && (buf[1] & 0b11111111) == 0b11101101) {
-		out << "SC                       ; Set carry flag to 1";
+		out << "SC";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b01111111 && (buf[1] & 0b11111111) == 0b11101011) {
-		out << "RC                       ; Set carry flag to 0";
+		out << "RC";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b11001111 && (buf[1] & 0b11111111) == 0b11111110) {
-		out << "CPLC                       ; Invert carry flag";
-		buf += 2;
-		return;
-	}
-	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11111111) == 0b11001110) {
-		int r = buf[0] >> 0 & 0b11111111;
-		out << "B       " << (tohex(2 + pc + ((int)(signed char)r << 1), 4 + 1)) << " ; bal";
+		out << "CPLC";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b00000000) == 0b00000000 && (buf[1] & 0b11110000) == 0b11000000) {
 		int c = buf[1] >> 0 & 0b1111, r = buf[0] >> 0 & 0b11111111;
-		out << "B" << (cond[c]) << "    " << (tohex(2 + pc + ((int)(signed char)r << 1), 4 + 1));
+		auto addr = (pc & 0x0f0000) | (uint16_t)(pc + 2 + ((int)(signed char)r << 1));
+		if (c == 15) {
+			out << "NOP";
+		}
+		else {
+			LABEL_LABEL(addr);
+			out << "B" << (cond[c]) << "    " << (tohex(addr, 5));
+		}
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b00011111) == 0b00001111 && (buf[1] & 0b11110001) == 0b10000001) {
 		int m = buf[1] >> 1 & 0b111, n = buf[0] >> 5 & 0b111;
-		out << (m == n ? "" : "Wrong format - ") << "EXTBW   ER" << (n * 2) << " ; ER" << (n * 2) << " = R" << (n) << " with sign";
+		out << "EXTBW   ER" << (n * 2); // Idk if this format is legal xd
+		//  << " ; ERn" << (n * 2) << " = R" << (m * 2)
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11000000) == 0b00000000 && (buf[1] & 0b11111111) == 0b11100101) {
 		int i = buf[0] >> 0 & 0b111111;
-		out << "SWI     #" << (i);
+		out << "SWI      " << (i);
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b11111111 && (buf[1] & 0b11111111) == 0b11111111) {
-		out << "BRK                       ; Trigger the BRK interrupt";
+		out << "BRK";
 		buf += 2;
 		return;
 	}
@@ -893,17 +916,17 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00011111 && (buf[1] & 0b11111111) == 0b11111110) {
-		out << "RT                      ; Return";
+		out << "RT";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00001111 && (buf[1] & 0b11111111) == 0b11111110) {
-		out << "RTI                     ; Return from interrupt";
+		out << "RTI";
 		buf += 2;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b10001111 && (buf[1] & 0b11111111) == 0b11111110) {
-		out << "NOP                      ; No operation";
+		out << "NOP";
 		buf += 2;
 		return;
 	}
@@ -969,31 +992,35 @@ void decode(std::ostream& out, uint8_t*& buf, uint32_t pc) {
 	}
 	if ((buf[0] & 0b10001111) == 0b10000000 && (buf[1] & 0b11111111) == 0b10100000 && (buf[2] & 0b00000000) == 0b00000000 && (buf[3] & 0b00000000) == 0b00000000) {
 		int D = buf[2] >> 0 & 0b11111111, E = buf[3] >> 0 & 0b11111111, b = buf[0] >> 4 & 0b111;
-		out << "SB      " << (tohex(E * 256 + D, 4)) << "." << (b) << " ; Set the bit to 1;Test the bit(inverted,stored into Z)";
+		out << "SB      " << (tohex(E * 256 + D, 4)) << "." << (b);
 		buf += 4;
 		return;
 	}
 	if ((buf[0] & 0b10001111) == 0b10000010 && (buf[1] & 0b11111111) == 0b10100000 && (buf[2] & 0b00000000) == 0b00000000 && (buf[3] & 0b00000000) == 0b00000000) {
 		int D = buf[2] >> 0 & 0b11111111, E = buf[3] >> 0 & 0b11111111, b = buf[0] >> 4 & 0b111;
-		out << "RB      " << (tohex(E * 256 + D, 4)) << "." << (b) << " ; Set the bit to 0;Test the bit(inverted,stored into Z)";
+		out << "RB      " << (tohex(E * 256 + D, 4)) << "." << (b);
 		buf += 4;
 		return;
 	}
 	if ((buf[0] & 0b10001111) == 0b10000001 && (buf[1] & 0b11111111) == 0b10100000 && (buf[2] & 0b00000000) == 0b00000000 && (buf[3] & 0b00000000) == 0b00000000) {
 		int D = buf[2] >> 0 & 0b11111111, E = buf[3] >> 0 & 0b11111111, b = buf[0] >> 4 & 0b111;
-		out << "TB      " << (tohex(E * 256 + D, 4)) << "." << (b) << " ; Test the bit(inverted,stored into Z)";
+		out << "TB      " << (tohex(E * 256 + D, 4)) << "." << (b);
 		buf += 4;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00000000 && (buf[1] & 0b11110000) == 0b11110000 && (buf[2] & 0b00000000) == 0b00000000 && (buf[3] & 0b00000000) == 0b00000000) {
 		int C = buf[2] >> 0 & 0b11111111, D = buf[3] >> 0 & 0b11111111, g = buf[1] >> 0 & 0b1111;
-		out << "B       " << (tohex(g, 1)) << (tohex(D * 256 + C, 4));
+		auto addr = (g << 16) | (D << 8) | (C);
+		LABEL_FUNCTION(addr);
+		out << "B       " << (tohex(addr, 5));
 		buf += 4;
 		return;
 	}
 	if ((buf[0] & 0b11111111) == 0b00000001 && (buf[1] & 0b11110000) == 0b11110000 && (buf[2] & 0b00000000) == 0b00000000 && (buf[3] & 0b00000000) == 0b00000000) {
 		int C = buf[2] >> 0 & 0b11111111, D = buf[3] >> 0 & 0b11111111, g = buf[1] >> 0 & 0b1111;
-		out << "BL      " << (tohex(g, 1)) << (tohex(D * 256 + C, 4));
+		auto addr = (g << 16) | (D << 8) | (C);
+		LABEL_FUNCTION(addr);
+		out << "BL      " << (tohex(addr, 5));
 		buf += 4;
 		return;
 	}

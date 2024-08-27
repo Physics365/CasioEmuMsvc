@@ -290,6 +290,8 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <CreateHotpatchableImage>false</CreateHotpatchableImage>
       <AdditionalIncludeDirectories>.;Chipset;Containers;Gui;Gui/imgui;Peripheral;Ext;Dcl;StartupUi;System</AdditionalIncludeDirectories>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -298,7 +300,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/EDITANDCONTINUE %(AdditionalOptions)</AdditionalOptions>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -314,6 +316,7 @@
     <ClCompile Include="Chipset\MMURegion.cpp" />
     <ClCompile Include="CrashHandler\CrashHandler.cpp" />
     <ClCompile Include="Emulator.cpp" />
+    <ClCompile Include="Gui\5800FileSystem.cpp" />
     <ClCompile Include="Gui\CallAnalysis.cpp" />
     <ClCompile Include="Gui\Editors.cpp" />
     <ClCompile Include="Gui\Hooks.cpp" />
@@ -369,6 +372,7 @@
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="Containers\ConcurrentObject.h" />
     <ClInclude Include="Ext\LabelFile.h" />
+    <ClInclude Include="Gui\5800FileSystem.h" />
     <ClInclude Include="Gui\CallAnalysis.h" />
     <ClInclude Include="Gui\CasioData.h" />
     <ClInclude Include="Gui\CwiiHelp.h" />

@@ -11,7 +11,7 @@
 #include <string>
 
 #include "Config.hpp"
-#include "ui.hpp"
+#include "Ui.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>

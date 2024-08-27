@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ui.hpp"
+#include "Ui.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -22,6 +22,8 @@ private:
 	std::vector<MemBPData_t> break_point_hash;
 
 	int target_addr = -1;
+
+	bool break_on_cv = false;
 
 	void DrawFindContent();
 
