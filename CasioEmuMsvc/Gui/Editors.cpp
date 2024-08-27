@@ -11,12 +11,33 @@ struct HexEditor : public UIWindow, public MemoryEditor {
 	void* data{};
 	size_t size{};
 	size_t display_base{};
+	bool open_popup = false;
+	size_t popup_p = 0;
 	HexEditor(const char* name, void* data, size_t size, size_t base) : UIWindow(name), data(data), size(size), display_base(base) {
 		flags = ImGuiWindowFlags_NoScrollbar;
 		this->ram_edit_ov = ::ram_edit_ov;
+		contextmenuuserdata = this;
+		ContextMenuFn = [](void* userdata, size_t where) {
+			((HexEditor*)userdata)->open_popup = true;
+			((HexEditor*)userdata)->popup_p = where;
+		};
 	}
 	void RenderCore() override {
 		this->DrawContents(data, size, display_base);
+		if (open_popup) {
+			ImGui::OpenPopup("ContextMenu");
+			open_popup = false;
+		}
+		if (ImGui::BeginPopup("ContextMenu")) {
+			ImGui::Text("%x", popup_p);
+			if (ImGui::MenuItem("Find out what wrote to this addr")) {
+				SetMemBp(popup_p, true);
+			}
+			if (ImGui::MenuItem("Find out what read this addr")) {
+				SetMemBp(popup_p, false);
+			}
+			ImGui::EndPopup();
+		}
 	}
 };
 struct SpansHexEditor : public UIWindow, public MemoryEditor {

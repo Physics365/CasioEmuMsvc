@@ -1,4 +1,4 @@
-#include "BatteryBackedRAM.hpp"
+ï»¿#include "BatteryBackedRAM.hpp"
 #include "Chipset.hpp"
 #include "Ui.hpp"
 class Fx5800FileSystem : public UIWindow {
@@ -48,7 +48,7 @@ public:
 		return fe;
 	}
 	IRam* ram{};
-	// Í¨¹ý UIWindow ¼Ì³Ð
+	// é€šè¿‡ UIWindow ç»§æ‰¿
 	void RenderCore() override {
 		if (!ram)
 			ram = m_emu->chipset.QueryInterface<IRam>();
