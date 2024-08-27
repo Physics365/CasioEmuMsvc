@@ -376,3 +376,4 @@ packages/
 enc_temp_folder/
 obj/
 bin/
+/CasioEmuMsvc/Chipset/ePS6800.cpp
