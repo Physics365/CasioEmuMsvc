@@ -683,7 +683,7 @@ struct MemoryEditor {
 								if (buf[i * 2] == '\0' || buf[i * 2 + 1] == '\0')
 									break;
 								char byte_buf[3] = {buf[i * 2], buf[i * 2 + 1]};
-								uint8_t input_value = strtoul(byte_buf, nullptr, 16);
+								uint8_t input_value = static_cast<uint8_t>(strtoul(byte_buf, nullptr, 16));
 								if (WriteFn) {
 									WriteFn(mem_data, addr + i, input_value);
 								}

@@ -4,6 +4,8 @@
 #include "Chipset.hpp"
 #include "MMU.hpp"
 
+#pragma warning(disable : 4244)
+
 namespace casioemu
 {
 	// * Load/Store Instructions

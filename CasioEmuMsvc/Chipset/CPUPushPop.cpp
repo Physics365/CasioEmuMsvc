@@ -6,6 +6,8 @@
 
 #include "Gui/Hooks.h"
 
+#pragma warning(disable : 4244)
+
 namespace casioemu {
 	// * PUSH/POP Instructions
 	void CPU::OP_PUSH() {

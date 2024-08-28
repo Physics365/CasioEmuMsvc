@@ -116,7 +116,7 @@ namespace casioemu {
 #ifdef DBG
 		if (softwareRead) {
 			MemoryEventArgs mea{};
-			mea.offset = offset;
+			mea.offset = static_cast<uint32_t>(offset);
 			RaiseEvent(on_memory_read, *this, mea);
 			if (mea.handled)
 				return mea.value;
@@ -179,7 +179,7 @@ namespace casioemu {
 		}
 		if (softwareWrite) {
 			MemoryEventArgs mea{};
-			mea.offset = offset;
+			mea.offset = static_cast<uint32_t>(offset);
 			mea.value = data;
 			RaiseEvent(on_memory_write, *this, mea);
 			if (mea.handled)

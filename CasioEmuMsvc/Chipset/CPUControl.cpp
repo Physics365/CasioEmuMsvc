@@ -5,6 +5,9 @@
 #include "Gui/Hooks.h"
 #include "Gui/ui.hpp"
 #include "MMU.hpp"
+
+#pragma warning(disable : 4244)
+
 namespace casioemu {
 	// * Control Register Access Instructions
 	void CPU::OP_ADDSP() {

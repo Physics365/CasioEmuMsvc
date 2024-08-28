@@ -290,10 +290,10 @@ namespace casioemu {
 	};
 	void ML620Port::UpdateInterrupt(int pi_tmp) {
 		if (pt.PortExiSelect(ind)) {
-			auto it = ((pi_tmp & (pi_tmp ^ PortInputOld) & TriggerWhenRise) | (PortInputOld & (pi_tmp ^ PortInputOld) & TriggerWhenFall)) && dat_ie;
+			auto it = ((pi_tmp & (pi_tmp ^ PortInputOld) & TriggerWhenRise) | (PortInputOld & (pi_tmp ^ PortInputOld) & TriggerWhenFall)) & dat_ie;
 			if (it) {
-				dat_is |= it;
-				dat_ie &= ~it;
+				dat_is = it;
+				dat_ie = 0;
 				pt.PortTriggerInterrupt(ind);
 			}
 		}

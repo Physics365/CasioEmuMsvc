@@ -131,7 +131,7 @@ namespace casioemu {
 					chipset->data_int_pending = (chipset->data_int_pending & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
 					chipset->data_int_pending &= mask;
 					for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
-						if (chipset->data_int_pending & (1 << (i + 1)))
+						if (chipset->data_int_pending & (static_cast<unsigned long long>(1) << (i + 1)))
 							chipset->MaskableInterrupts[i].TryRaise();
 						else
 							chipset->MaskableInterrupts[i].ResetInt();
@@ -197,7 +197,7 @@ namespace casioemu {
 				chipset->data_int_pending = (chipset->data_int_pending & (~(0xFF << (offset * 8)))) | (data << (offset * 8));
 				chipset->data_int_pending &= mask;
 				for (size_t i = 0; i < chipset->EffectiveMICount; i++) {
-					if (chipset->data_int_pending & (1 << (i + 1)))
+					if (chipset->data_int_pending & (static_cast<unsigned long long>(1) << (i + 1)))
 						chipset->MaskableInterrupts[i].TryRaise();
 					else
 						chipset->MaskableInterrupts[i].ResetInt();
@@ -631,7 +631,7 @@ namespace casioemu {
 			PANIC("%zu is not a valid maskable interrupt index\n", index);
 
 		InterruptEventArgs iea{};
-		iea.index = index;
+		iea.index = static_cast<uint8_t>(index); // this conversion is guaranteed
 		RaiseEvent(on_interrupt, *this, iea);
 		if (iea.handled)
 			return;
@@ -767,14 +767,14 @@ namespace casioemu {
 	}
 
 	bool Chipset::GetInterruptPendingSFR(size_t index) {
-		return data_int_pending & (1 << (index - managed_interrupt_base));
+		return data_int_pending & (static_cast<unsigned long long>(1) << (index - managed_interrupt_base));
 	}
 
 	void Chipset::SetInterruptPendingSFR(size_t index, bool val) {
 		if (val)
-			data_int_pending |= (1 << (index - managed_interrupt_base));
+			data_int_pending |= (static_cast<unsigned long long>(1) << (index - managed_interrupt_base));
 		else
-			data_int_pending &= ~(1 << (index - managed_interrupt_base));
+			data_int_pending &= ~(static_cast<unsigned long long>(1) << (index - managed_interrupt_base));
 	}
 
 	void Chipset::InputToPort(int port, int pin, bool value) {

@@ -10,6 +10,8 @@
 #include <iomanip>
 #include <sstream>
 
+#pragma warning(disable:4244)
+
 namespace casioemu {
 	// clang-format off
 	CPU::OpcodeSource CPU::opcode_sources[] = {

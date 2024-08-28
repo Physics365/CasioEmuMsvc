@@ -61,6 +61,8 @@ inline void fillRandomData(unsigned char* buf, size_t size) {
 	});
 }
 
+#pragma warning(disable:4244)
+
 namespace casioemu {
 	struct SpriteBitmap {
 		const char* name;
