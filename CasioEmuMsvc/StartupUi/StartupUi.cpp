@@ -1,7 +1,7 @@
 ﻿#include "StartupUi.h"
 #include "Binary.h"
 #include "Config.hpp"
-#include "Gui/Ui.hpp"
+#include "Ui.hpp"
 #include "Gui/imgui/imgui.h"
 #include "Gui/imgui/imgui_impl_sdl2.h"
 #include "Gui/imgui/imgui_impl_sdlrenderer2.h"
@@ -60,7 +60,6 @@ class ModelEditor : public UIWindow {
 
 	char buffer[260];
 	char buffer2[12];
-	char buffer3[12];
 
 	casioemu::ButtonInfo* btninfo{};
 
@@ -457,6 +456,9 @@ namespace casioemu {
 							case RomInfo::Fx5800p:
 								mod.type = "Fx5800p";
 								break;
+							default:
+								mod.type = "???";
+								break;
 							}
 						}
 						if (ri.ok) {
@@ -639,14 +641,14 @@ namespace casioemu {
 				}
 			}
 			ImGui::TableNextColumn();
-			ImGui::Text(model.version.c_str());
+			ImGui::TextUnformatted(model.version.c_str());
 			ImGui::TableNextColumn();
 			if (model.realhw) {
 				if (model.show_sum) {
 					ImGui::Text("%s (%s) %s", model.checksum.c_str(), model.checksum2.c_str(), model.sum_good.c_str());
 				}
 				else {
-					ImGui::Text(
+					ImGui::TextUnformatted(
 #if LANGUAGE == 2
 						"不适用"
 #else
@@ -656,7 +658,7 @@ namespace casioemu {
 				}
 			}
 			else {
-				ImGui::Text(
+				ImGui::TextUnformatted(
 #if LANGUAGE == 2
 					"模拟器"
 #else
@@ -665,7 +667,7 @@ namespace casioemu {
 				);
 			}
 			ImGui::TableNextColumn();
-			ImGui::Text(model.type.c_str());
+			ImGui::TextUnformatted(model.type.c_str());
 			ImGui::TableNextColumn();
 			if (ImGui::Button(
 #if LANGUAGE == 2

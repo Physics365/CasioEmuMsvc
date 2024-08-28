@@ -64,7 +64,7 @@ struct CallAnalysis : public UIWindow {
 					ImGui::TableNextColumn();
 					ImGui::Text("%06x", func.first);
 					ImGui::TableNextColumn();
-					ImGui::Text("%d", func.second.size());
+					ImGui::Text("%d", (int)func.second.size());
 					ImGui::TableNextColumn();
 				}
 				ImGui::EndTable();
@@ -162,7 +162,7 @@ struct CallAnalysis : public UIWindow {
 					ImGui::TableNextColumn();
 					ImGui::Text("%06x", func.first);
 					ImGui::TableNextColumn();
-					ImGui::Text("%d", func.second.size());
+					ImGui::Text("%d", (int)func.second.size());
 					ImGui::TableNextColumn();
 					ImGui::PushID(i++);
 					if (ImGui::Button("展示所有调用记录")) {

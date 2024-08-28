@@ -61,17 +61,17 @@ void VariableWindow::RenderCore() {
 		if (is_in_im && !strcmp(v.Name, "PreAns"))
 			continue;
 		std::string s;
-		ImGui::Text(v.Name);
+		ImGui::TextUnformatted(v.Name);
 		ImGui::SameLine(90);
 		s = cwii::StringizeCwiiNumber(base_addr + v.RealPartOffset);
-		ImGui::Text(s.c_str());
+		ImGui::TextUnformatted(s.c_str());
 		if (s_im) {
 			ImGui::SameLine(320);
 			s = cwii::StringizeCwiiNumber(base_addr + v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id));
-			ImGui::Text(s.c_str());
+			ImGui::TextUnformatted(s.c_str());
 		}
 		if (showhex) {
-			ImGui::Text(
+			ImGui::TextUnformatted(
 #if LANGUAGE == 2
 				"十六进制"
 #else
@@ -80,15 +80,15 @@ void VariableWindow::RenderCore() {
 			);
 			ImGui::SameLine(90);
 			s = cwii::HexizeString(base_addr + v.RealPartOffset, casioemu::GetVariableSize(m_emu->hardware_id));
-			ImGui::Text(s.c_str());
+			ImGui::TextUnformatted(s.c_str());
 			if (s_im) {
 				ImGui::SameLine(320);
 				s = cwii::HexizeString(base_addr + v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id), casioemu::GetVariableSize(m_emu->hardware_id));
-				ImGui::Text(s.c_str());
+				ImGui::TextUnformatted(s.c_str());
 			}
 		}
 		if (showaddr) {
-			ImGui::Text(
+			ImGui::TextUnformatted(
 #if LANGUAGE == 2
 				"地址"
 #else
@@ -97,21 +97,21 @@ void VariableWindow::RenderCore() {
 			);
 			ImGui::SameLine(90);
 			s = to_hex(v.RealPartOffset);
-			ImGui::Text(s.c_str());
+			ImGui::TextUnformatted(s.c_str());
 			if (s_im) {
 				ImGui::SameLine(320);
 				s = to_hex(v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id));
-				ImGui::Text(s.c_str());
+				ImGui::TextUnformatted(s.c_str());
 			}
 		}
 	}
 	if (m_emu->hardware_id == casioemu::HW_CLASSWIZ_II) {
-		ImGui::Text("Theta");
+		ImGui::TextUnformatted("Theta");
 		ImGui::SameLine(90);
 		auto a = cwii::StringizeCwiiNumber(n_ram_buffer + 0xBDEC - 0x9000);
-		ImGui::Text(a.c_str());
+		ImGui::TextUnformatted(a.c_str());
 		if (showaddr) {
-			ImGui::Text(
+			ImGui::TextUnformatted(
 #if LANGUAGE == 2
 				"地址"
 #else
@@ -119,7 +119,7 @@ void VariableWindow::RenderCore() {
 #endif
 			);
 			ImGui::SameLine(90);
-			ImGui::Text("0xBDEC");
+			ImGui::TextUnformatted("0xBDEC");
 		}
 	}
 	ImGui::Checkbox(

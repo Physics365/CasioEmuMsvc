@@ -1,5 +1,4 @@
-﻿#pragma once
-#include "Romu.h"
+﻿#include "Romu.h"
 #include "Memory.h"
 #include "ModelInfo.h"
 #include <fstream>

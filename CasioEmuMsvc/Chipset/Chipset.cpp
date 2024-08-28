@@ -38,7 +38,7 @@ namespace casioemu {
 	void* Chipset::QueryInterface(const char* name) {
 		auto d = (void*)0;
 		for (auto& phe : peripherals) {
-			if (d = phe->QueryInterface(name))
+			if ((d = phe->QueryInterface(name)))
 				return d;
 		}
 		return nullptr;

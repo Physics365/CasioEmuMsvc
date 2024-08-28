@@ -29,5 +29,8 @@ public:
 		ImGui::End();
 	}
 	virtual void RenderCore() = 0;
+	virtual ~UIWindow() {
+
+	}
 };
-constexpr ImGuiTableFlags pretty_table = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Reorderable;
+inline constexpr ImGuiTableFlags pretty_table = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Reorderable;

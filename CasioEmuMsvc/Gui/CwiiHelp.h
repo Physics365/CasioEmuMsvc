@@ -177,7 +177,7 @@ namespace cwii {
 		auto numbersign = 1;
 		auto expsign = 1;
 		if (!ConvertSign(sign, expsign, numbersign))
-			0;
+			;
 		auto base = HexizeString(p, sz - 2);
 		switch (type) {
 		case 0x0:
@@ -241,7 +241,7 @@ namespace cwii {
 			auto numbersign2 = 1;
 			auto expsign2 = 1;
 			if (!ConvertSign(exp, expsign2, numbersign2))
-				0;
+				;
 			std::string fin;
 			auto sqrt1 = trim(base.substr(1, 3));
 			auto a1 = trim(base.substr(4, 2));

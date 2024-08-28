@@ -55,7 +55,7 @@
 #include <string>
 #include <vector>
 
-#include "config.hpp"
+#include "Config.hpp"
 
 #ifdef _MSC_VER
 #define _PRISizeT "I"

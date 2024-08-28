@@ -35,9 +35,9 @@ void WatchWindow::ShowRX() {
 		ImGui::SameLine();
 		sprintf(id, "##data%d", i);
 		ImGui::SetNextItemWidth(char_width * 3);
-		ImGui::Text((char*)&reg_rx[i][0]);
+		ImGui::TextUnformatted((char*)&reg_rx[i][0]);
 	}
-	ImGui::Text("ERn: ");
+	ImGui::TextUnformatted("ERn: ");
 	for (int i = 0; i < 16; i += 2) {
 		ImGui::SameLine();
 		uint16_t val = m_emu->chipset.cpu.reg_r[i + 1]
@@ -46,11 +46,11 @@ void WatchWindow::ShowRX() {
 		ImGui::Text("%04x ", val);
 	}
 	auto show_sfr = ([&](char* ptr, const char* label, int i, int width = 4) {
-		ImGui::TextColored(ImVec4(0, 200, 0, 255), label);
+		ImGui::TextColored(ImVec4(0, 200, 0, 255), "%s", label);
 		ImGui::SameLine();
 		sprintf(id, "##sfr%d", i);
 		ImGui::SetNextItemWidth(char_width * width + 5);
-		ImGui::Text(ptr);
+		ImGui::TextUnformatted(ptr);
 	});
 	show_sfr(reg_pc, "PC: ", 1, 6);
 	ImGui::SameLine();
@@ -75,7 +75,7 @@ void WatchWindow::ModRX() {
 	}
 	// ERn
 	// 不可编辑，必须通过Rn编辑
-	ImGui::Text("ERn: ");
+	ImGui::TextUnformatted("ERn: ");
 	for (int i = 0; i < 16; i += 2) {
 		ImGui::SameLine();
 		uint16_t val = m_emu->chipset.cpu.reg_r[i + 1]
@@ -85,7 +85,7 @@ void WatchWindow::ModRX() {
 	}
 
 	auto show_sfr = ([&](char* ptr, const char* label, int i, int width = 4) {
-		ImGui::TextColored(ImVec4(0, 200, 0, 255), label);
+		ImGui::TextColored(ImVec4(0, 200, 0, 255), "%s", label);
 		ImGui::SameLine();
 		sprintf(id, "##sfr%d", i);
 		ImGui::SetNextItemWidth(char_width * width + 2);
@@ -172,7 +172,7 @@ void WatchWindow::RenderCore() {
 			ImGui::TableNextColumn();
 			ImGui::TextUnformatted(lookup_symbol(frame.new_pc).c_str());
 			ImGui::TableNextColumn();
-			ImGui::Text("%06X",frame.new_pc);
+			ImGui::Text("%06X", frame.new_pc);
 			ImGui::TableNextColumn();
 			ImGui::Text("%04X", frame.sp);
 			ImGui::TableNextColumn();
@@ -213,6 +213,6 @@ void WatchWindow::RenderCore() {
 	if (rng + offset >= casioemu::GetRamBaseAddr(m_emu->hardware_id) + casioemu::GetRamSize(m_emu->hardware_id)) {
 		rng = casioemu::GetRamSize(m_emu->hardware_id) - offset + casioemu::GetRamBaseAddr(m_emu->hardware_id);
 	}
-	mem_editor.DrawContents((void*)offset, rng, offset);
+	mem_editor.DrawContents((void*)static_cast<size_t>(offset), rng, offset);
 	ImGui::EndChild();
 }

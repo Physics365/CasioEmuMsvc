@@ -68,7 +68,7 @@ namespace casioemu {
 				segment_index = 0;
 			if (segment_index < 4) {
 				if (emulator.chipset.remap)
-					return le_read(rom[offset + (segment_index == 0 && segment_offset < 0x200) ? 0xFE00 : 0]);
+					return le_read(rom[offset + ((segment_index == 0 && segment_offset < 0x200) ? 0xFE00 : 0)]);
 				else
 					return (segment_index == 0 && segment_offset >= 0xFE00) ? 0xFFFF : le_read(rom[offset]);
 			}
@@ -92,7 +92,7 @@ namespace casioemu {
 					return 0xFFFF;
 			}
 			if (emulator.chipset.remap)
-				return le_read(rom[offset + (segment_index == 0 && segment_offset < 0x200) ? 0xFE00 : 0]);
+				return le_read(rom[offset + ((segment_index == 0 && segment_offset < 0x200) ? 0xFE00 : 0)]);
 			else
 				return (segment_index == 0 && segment_offset >= 0xFE00) ? 0xFFFF : le_read(rom[offset]);
 		case HW_FX_5800P:
@@ -105,11 +105,6 @@ namespace casioemu {
 			return 0;
 		}
 	}
-
-	static size_t writing_addr = 0;
-	static size_t write_cycle = 0;
-	static int flash_mode = 0;
-
 	uint8_t MMU::ReadData(size_t offset, bool softwareRead) {
 		// if (offset >= (1 << 24))
 		//	PANIC("offset doesn't fit 24 bits\n");

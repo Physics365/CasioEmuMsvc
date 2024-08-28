@@ -103,6 +103,10 @@ namespace casioemu {
 			emulator.chipset.rom_data.resize(0x20000, 0);
 			SetupROMRegion(regions[0], 0x00000, 0x8000, 0x00000, strict_memory, emulator);
 			SetupROMRegion(regions[1], 0x10000, 0x10000, 0x10000, strict_memory, emulator);
+			break;
+		default:
+			PANIC("Unknown Model type");
+			break;
 		}
 	}
 	Peripheral* CreateRomWindow(Emulator& emu) {

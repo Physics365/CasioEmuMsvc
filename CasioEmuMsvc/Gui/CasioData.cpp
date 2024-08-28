@@ -49,7 +49,7 @@ void CasioData::RenderCore() {
 		for (size_t i = 0; i < 45 * 5 * 2; i += 2) {
 			// 第一个字节: 公式长度
 			// 第二个字节: ?
-			auto fmla = iptr[i];
+			//auto fmla = iptr[i];
 			auto type = iptr[i + 1];
 			if ((type & 0x80) == 0x80) {
 				sz += casioemu::GetVariableSize(hwid);

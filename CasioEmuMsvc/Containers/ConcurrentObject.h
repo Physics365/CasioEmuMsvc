@@ -35,7 +35,7 @@ public:
 		~ObjectRef() {
 			if (own_lock) {
 				obj.mtx.unlock();
-				obj.own_thread = std::thread::id::id();
+				obj.own_thread = std::thread::id();
 			}
 		}
 		T* operator->() {
@@ -60,7 +60,7 @@ public:
 		~ConstObjectRef() {
 			if (own_lock) {
 				obj.mtx.unlock();
-				obj.own_thread = std::thread::id::id();
+				obj.own_thread = std::thread::id();
 			}
 		}
 		const T* operator->() {

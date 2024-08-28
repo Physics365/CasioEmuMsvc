@@ -29,7 +29,7 @@ struct HexEditor : public UIWindow, public MemoryEditor {
 			open_popup = false;
 		}
 		if (ImGui::BeginPopup("ContextMenu")) {
-			ImGui::Text("%x", popup_p);
+			ImGui::Text("%x", (unsigned int)popup_p);
 			if (ImGui::MenuItem("Find out what wrote to this addr")) {
 				SetMemBp(popup_p, true);
 			}
@@ -64,7 +64,7 @@ struct SpansHexEditor : public UIWindow, public MemoryEditor {
 			open_popup = false;
 		}
 		if (ImGui::BeginPopup("ContextMenu")) {
-			ImGui::Text("%x", popup_p);
+			ImGui::Text("%x", (unsigned int)popup_p);
 			if (ImGui::MenuItem("Find out what wrote to this addr")) {
 				SetMemBp(popup_p, true);
 			}

@@ -61,7 +61,7 @@ inline void fillRandomData(unsigned char* buf, size_t size) {
 	});
 }
 
-#pragma warning(disable:4244)
+#pragma warning(disable : 4244)
 
 namespace casioemu {
 	struct SpriteBitmap {
@@ -196,7 +196,7 @@ namespace casioemu {
 			}
 
 			if (screen_refresh_rate < screen_flashing_threshold && !enable_screen_fading)
-				0;
+				;
 			else {
 				update_screen_scan_alpha(screen_scan_alpha, SDL_GetTicks64(), screen_refresh_rate);
 			}
@@ -343,12 +343,14 @@ namespace casioemu {
 							bool clear = 0;
 							if (iy2 >= rng && iy2 < 32)
 								clear = 1;
-							if (iy2 >= 32)
+							if (iy2 >= 32) {
 								if (iy2 <= 32 + rng) {
 									iy = (iy2 - 32 + rng + screen_offset) % (N_ROW + 1);
 								}
-								else
+								else {
 									clear = 1;
+								}
+							}
 							dest.x = sprite_info[SPR_PIXEL].dest.x;
 							dest.y = sprite_info[SPR_PIXEL].dest.y + (iy2 - 1) * sprite_info[SPR_PIXEL].src.h;
 							int x = 0;
@@ -377,12 +379,14 @@ namespace casioemu {
 							bool clear = 0;
 							if (iy2 >= rng && iy2 < 32)
 								clear = 1;
-							if (iy2 >= 32)
+							if (iy2 >= 32) {
 								if (iy2 <= 32 + rng) {
 									iy = (iy2 - 32 + rng + screen_offset) % (N_ROW + 1);
 								}
-								else
+								else {
 									clear = 1;
+								}
+							}
 							dest.x = sprite_info[SPR_PIXEL].dest.x;
 							dest.y = sprite_info[SPR_PIXEL].dest.y + (iy2 - 1) * sprite_info[SPR_PIXEL].src.h;
 							int x = 0;

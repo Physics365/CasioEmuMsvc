@@ -3,7 +3,7 @@
 #include "Chipset.hpp"
 #include "Emulator.hpp"
 #include "Gui/Hooks.h"
-#include "Gui/ui.hpp"
+#include "Ui.hpp"
 #include "MMU.hpp"
 
 #pragma warning(disable : 4244)

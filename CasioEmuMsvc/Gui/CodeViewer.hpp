@@ -22,7 +22,6 @@ class CodeViewer : public UIWindow {
 private:
 	std::map<int, uint8_t> break_points;
 	std::vector<CodeElem> codes;
-	size_t rows;
 	std::string src_path;
 	char adrbuf[9]{0};
 	int max_row = 0;
@@ -33,10 +32,8 @@ private:
 	bool stepping = false;
 	bool tracing = false;
 	uint32_t trace_bp = 0;
-	uint32_t trace_bp2 = 0;
 
 	bool is_loaded = false;
-	bool edit_active = false;
 	bool need_roll = false;
 	uint32_t selected_addr = -1;
 

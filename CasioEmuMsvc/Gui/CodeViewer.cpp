@@ -228,7 +228,6 @@ void CodeViewer::ExternalBP() {
 void CodeViewer::DrawContent() {
 	ImGuiListClipper c;
 	c.Begin(max_row, ImGui::GetTextLineHeight());
-	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 	while (c.Step()) {
 		first_col = c.DisplayStart;
 		for (int line_i = c.DisplayStart; line_i < c.DisplayEnd; line_i++) {
@@ -289,8 +288,6 @@ void CodeViewer::DrawMonitor() {
 		ImGui::InputTextMultiline("##as", (char*)s.c_str(), s.size(), ImVec2(ImGui::GetWindowWidth(), -1), ImGuiInputTextFlags_ReadOnly);
 	}
 }
-
-static bool step_debug = false, trace_debug = false;
 
 void CodeViewer::JumpTo(uint32_t offset) {
 	int idx = 0;

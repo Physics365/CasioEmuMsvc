@@ -15,7 +15,6 @@ void MemBreakPoint::DrawContent() {
 	ImGuiListClipper c;
 	static int selected = -1;
 	c.Begin(break_point_hash.size());
-	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 	char buf[5] = {0};
 	while (c.Step()) {
 

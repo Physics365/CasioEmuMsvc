@@ -1,6 +1,6 @@
 ﻿#include "Config.hpp"
-#include "Gui/imgui/imgui_impl_sdl2.h"
-#include "Gui/ui.hpp"
+#include "Ui.hpp"
+#include "imgui_impl_sdl2.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	Emulator emulator(argv_map);
 	m_emu = &emulator;
 
-	static std::atomic<bool> running(true);
+	// static std::atomic<bool> running(true);
 
 	bool guiCreated = false;
 	auto frame_event = SDL_RegisterEvents(1);
@@ -114,8 +114,13 @@ int main(int argc, char* argv[]) {
 			gui_loop();
 #endif
 			emulator.Frame();
+			while (SDL_PollEvent(&event)) {
+				if (event.type != frame_event)
+					goto hld;
+			}
 			continue;
 		}
+	hld:
 		switch (event.type) {
 		case SDL_WINDOWEVENT:
 			switch (event.window.event) {

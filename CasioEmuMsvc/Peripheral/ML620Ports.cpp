@@ -28,8 +28,8 @@ namespace casioemu {
 
 		DefSfr(ie);
 		DefSfr(is);
-		DefSfr(ic);
-		DefSfr(iu);
+		MMURegion reg_ic{};
+		MMURegion reg_iu{};
 
 		// 端口电平
 		uint8_t PortLevel{};
@@ -251,7 +251,6 @@ namespace casioemu {
 			return 0;
 		}
 		void PortTriggerInterrupt(int i) {
-			size_t k = -1;
 			for (size_t j = 0; j < 8; j++) {
 				if (((ExiSelect_d[j] >> 4) == i) &&
 					((ExiSelect_d[j] & 0xf) == 0x8)) {
