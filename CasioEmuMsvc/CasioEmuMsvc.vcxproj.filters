@@ -183,6 +183,9 @@
     <ClCompile Include="Gui\5800FileSystem.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Ext\SysDialog.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">
@@ -390,6 +393,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Gui\5800FileSystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ext\RomPackage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ext\SysDialog.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -316,6 +316,7 @@
     <ClCompile Include="Chipset\MMURegion.cpp" />
     <ClCompile Include="CrashHandler\CrashHandler.cpp" />
     <ClCompile Include="Emulator.cpp" />
+    <ClCompile Include="Ext\SysDialog.cpp" />
     <ClCompile Include="Gui\5800FileSystem.cpp" />
     <ClCompile Include="Gui\CallAnalysis.cpp" />
     <ClCompile Include="Gui\Editors.cpp" />
@@ -372,6 +373,8 @@
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="Containers\ConcurrentObject.h" />
     <ClInclude Include="Ext\LabelFile.h" />
+    <ClInclude Include="Ext\RomPackage.h" />
+    <ClInclude Include="Ext\SysDialog.h" />
     <ClInclude Include="Gui\5800FileSystem.h" />
     <ClInclude Include="Gui\CallAnalysis.h" />
     <ClInclude Include="Gui\CasioData.h" />

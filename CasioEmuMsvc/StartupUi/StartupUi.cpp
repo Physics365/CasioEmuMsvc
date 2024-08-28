@@ -1,12 +1,13 @@
 ﻿#include "StartupUi.h"
 #include "Binary.h"
 #include "Config.hpp"
-#include "Ui.hpp"
 #include "Gui/imgui/imgui.h"
 #include "Gui/imgui/imgui_impl_sdl2.h"
 #include "Gui/imgui/imgui_impl_sdlrenderer2.h"
 #include "ModelInfo.h"
+#include "RomPackage.h"
 #include "Romu.h"
+#include "SysDialog.h"
 #include "Ui.hpp"
 #include <SDL.h>
 #include <SDL_image.h>
@@ -240,13 +241,6 @@ public:
 				mi.ink_color.g = color[1] * 255;
 				mi.ink_color.b = color[2] * 255;
 			}
-			if (ImGui::Button("Save")) {
-				std::ofstream ifs(pth / "config.bin", std::ios::binary);
-				if (!ifs)
-					PANIC("Cannot open.");
-				Binary::Write(ifs, mi);
-				this->open = false;
-			}
 			ImGui::Separator();
 			if (btninfo) {
 				if (ImGui::InputText("Keyname", buffer, 260)) {
@@ -386,113 +380,123 @@ namespace casioemu {
 				printf("[StartupUI][Warn] \"rom.db\" not found. Names may be inaccurate!\n");
 			}
 			std::filesystem::create_directory("models");
-			for (auto& dir : std::filesystem::directory_iterator("models")) {
-				if (dir.is_directory()) {
-					printf("[StartupUI][Info] Checking %s\n", dir.path().string().c_str());
-					auto config = dir.path() / "config.bin";
-					std::ifstream ifs(config, std::ios::in | std::ios::binary);
-					if (!ifs) {
-						printf("[StartupUI][Info] Unable to open %s\n", config.string().c_str());
-						continue;
-					}
-					ModelInfo mi{};
-					Binary::Read(ifs, mi);
-					ifs.close();
-					Model mod{};
-					mod.path = dir;
-					mod.name = mi.model_name;
-					mod.realhw = mi.real_hardware;
-					switch (mi.hardware_id) {
-					case HW_ES_PLUS:
-						mod.type = "ESP";
-						break;
-					case HW_CLASSWIZ:
-						mod.type = "CWX";
-						break;
-					case HW_CLASSWIZ_II:
-						mod.type = "CWII";
-						break;
-					case HW_FX_5800P:
-						mod.type = "Fx5800p";
-						break;
-					case HW_TI:
-						mod.type = "TI";
-						break;
-					case HW_SOLARII:
-						mod.type = "SolarII";
-						break;
-					default:
-						mod.type = "Unknown";
-						break;
-					}
-					{
-						std::ifstream ifs2(dir.path() / mi.rom_path, std::ios::in | std::ios::binary);
-						if (!ifs2)
+			Reload();
+		}
+		void Reload() {
+			loading = true;
+			std::thread thd([&]() {
+				models.clear();
+				for (auto& dir : std::filesystem::directory_iterator("models")) {
+					if (dir.is_directory()) {
+						printf("[StartupUI][Info] Checking %s\n", dir.path().string().c_str());
+						auto config = dir.path() / "config.bin";
+						std::ifstream ifs(config, std::ios::in | std::ios::binary);
+						if (!ifs) {
+							printf("[StartupUI][Info] Unable to open %s\n", config.string().c_str());
 							continue;
-						std::vector<byte> rom{std::istreambuf_iterator<char>{ifs2.rdbuf()}, std::istreambuf_iterator<char>{}};
-						ifs2.close();
-						std::vector<byte> flash{};
-						std::ifstream ifs3(dir.path() / mi.flash_path, std::ios::in | std::ios::binary);
-						if (ifs3)
-							flash = {std::istreambuf_iterator<char>{ifs3.rdbuf()}, std::istreambuf_iterator<char>{}};
-						auto ri = rom_info(rom, flash, mi.real_hardware);
-						if (ri.type != 0) {
-							switch (ri.type) {
-							case RomInfo::ES:
-								mod.type = "ES";
-								break;
-							case RomInfo::ESP:
-								mod.type = "ESP";
-								break;
-							case RomInfo::ESP2nd:
-								mod.type = "ESP2nd";
-								break;
-							case RomInfo::CWX:
-								mod.type = "CWX";
-								break;
-							case RomInfo::CWII:
-								mod.type = "CWII";
-								break;
-							case RomInfo::Fx5800p:
-								mod.type = "Fx5800p";
-								break;
-							default:
-								mod.type = "???";
-								break;
+						}
+						ModelInfo mi{};
+						Binary::Read(ifs, mi);
+						ifs.close();
+						Model mod{};
+						mod.path = dir;
+						mod.name = mi.model_name;
+						mod.realhw = mi.real_hardware;
+						switch (mi.hardware_id) {
+						case HW_ES_PLUS:
+							mod.type = "ESP";
+							break;
+						case HW_CLASSWIZ:
+							mod.type = "CWX";
+							break;
+						case HW_CLASSWIZ_II:
+							mod.type = "CWII";
+							break;
+						case HW_FX_5800P:
+							mod.type = "Fx5800p";
+							break;
+						case HW_TI:
+							mod.type = "TI";
+							break;
+						case HW_SOLARII:
+							mod.type = "SolarII";
+							break;
+						default:
+							mod.type = "Unknown";
+							break;
+						}
+						{
+							std::ifstream ifs2(dir.path() / mi.rom_path, std::ios::in | std::ios::binary);
+							if (!ifs2)
+								continue;
+							std::vector<byte> rom{std::istreambuf_iterator<char>{ifs2.rdbuf()}, std::istreambuf_iterator<char>{}};
+							ifs2.close();
+							std::vector<byte> flash{};
+							std::ifstream ifs3(dir.path() / mi.flash_path, std::ios::in | std::ios::binary);
+							if (ifs3)
+								flash = {std::istreambuf_iterator<char>{ifs3.rdbuf()}, std::istreambuf_iterator<char>{}};
+							auto ri = rom_info(rom, flash, mi.real_hardware);
+							if (ri.type != 0) {
+								switch (ri.type) {
+								case RomInfo::ES:
+									mod.type = "ES";
+									break;
+								case RomInfo::ESP:
+									mod.type = "ESP";
+									break;
+								case RomInfo::ESP2nd:
+									mod.type = "ESP2nd";
+									break;
+								case RomInfo::CWX:
+									mod.type = "CWX";
+									break;
+								case RomInfo::CWII:
+									mod.type = "CWII";
+									break;
+								case RomInfo::Fx5800p:
+									mod.type = "Fx5800p";
+									break;
+								default:
+									mod.type = "???";
+									break;
+								}
 							}
-						}
-						if (ri.ok) {
-							mod.version = ri.ver;
-							std::array<char, 8> key{};
-							memcpy(key.data(), mod.version.data(), 6);
-							auto iter = RomNames.find(key);
-							if (iter != RomNames.end())
-								mod.name = iter->second;
-							mod.checksum = tohex(ri.real_sum, 4);
-							mod.checksum2 = tohex(ri.desired_sum, 4);
-							mod.sum_good = ri.real_sum == ri.desired_sum ? "OK" : "NG";
-							mod.id = tohex(*(unsigned long long*)ri.cid, 8);
-							if (ri.type == RomInfo::ES) {
-								auto a = get_pd(mi.pd_value);
-								using std::operator""s;
-								mod.version += " (P"s + a + ")";
+							if (ri.ok) {
+								mod.version = ri.ver;
+								std::array<char, 8> key{};
+								memcpy(key.data(), mod.version.data(), 6);
+								auto iter = RomNames.find(key);
+								if (iter != RomNames.end())
+									mod.name = iter->second;
+								mod.checksum = tohex(ri.real_sum, 4);
+								mod.checksum2 = tohex(ri.desired_sum, 4);
+								mod.sum_good = ri.real_sum == ri.desired_sum ? "OK" : "NG";
+								mod.id = tohex(*(unsigned long long*)ri.cid, 8);
+								if (ri.type == RomInfo::ES) {
+									auto a = get_pd(mi.pd_value);
+									mod.version += std::string(" (P") + a + ")";
+								}
 							}
+							else {
+								mod.show_sum = false;
+							}
+							printf("[StartupUI][Debug] Model Summary\n"
+								   "[StartupUI][Debug] Name: %s\n"
+								   "[StartupUI][Debug] Type: %s\n",
+								mod.name.c_str(), mod.type.c_str());
 						}
-						else {
-							mod.show_sum = false;
-						}
-						printf("[StartupUI][Debug] Model Summary\n"
-							"[StartupUI][Debug] Name: %s\n"
-							"[StartupUI][Debug] Type: %s\n",mod.name.c_str(),mod.type.c_str());
+						models.push_back(mod);
 					}
-					models.push_back(mod);
 				}
-			}
+				loading = false;
+			});
+			thd.detach();
 		}
 		std::vector<std::string> recently_used{};
 		char search_txt[200]{};
 		const char* current_filter = "##";
 		bool not_show_emu = false;
+		bool loading = false;
 		void Render() {
 			auto io = ImGui::GetIO();
 			ImGui::SetNextWindowSize({io.DisplaySize.x, io.DisplaySize.y});
@@ -505,6 +509,35 @@ namespace casioemu {
 #endif
 				,
 				0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking);
+			if (ImGui::Button("Import...")) {
+				auto f = SystemDialogs::OpenFileDialog();
+				std::ifstream ifs{f, std::ios::binary};
+				if (ifs) {
+					RomPackage rp{};
+					Binary::Read(ifs, rp);
+					if (rp.IsEncrypted) {
+						std::cout << "Input password here:";
+						std::string p;
+						std::cin >> p;
+						try {
+							rp.Decrypt(p);
+							rp.ExtractTo("./models");
+						}
+						catch (...) {
+							std::cout << "Password incorrect.\n";
+						}
+					}
+					else {
+						rp.ExtractTo("./models");
+					}
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Refresh")) {
+				Reload();
+			}
+			if (loading)
+				return;
 			ImGui::Text(
 #if LANGUAGE == 2
 				"选择你的英雄:"
@@ -520,7 +553,7 @@ namespace casioemu {
 				"Recently used"
 #endif
 			);
-			if (ImGui::BeginTable("Recently", 5, pretty_table)) {
+			if (ImGui::BeginTable("Recently", 4, pretty_table)) {
 				RenderHeaders();
 				auto i = 114;
 				for (auto& s : recently_used) {
@@ -572,7 +605,7 @@ namespace casioemu {
 #endif
 					,
 					&not_show_emu);
-				if (ImGui::BeginTable("All", 5, pretty_table)) {
+				if (ImGui::BeginTable("All", 4, pretty_table)) {
 					RenderHeaders();
 					auto i = 114;
 					for (auto& model : models) {
@@ -620,26 +653,67 @@ namespace casioemu {
 #endif
 				,
 				ImGuiTableColumnFlags_WidthFixed, 70);
-			ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80);
+			// ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80);
 			ImGui::TableHeadersRow();
 		}
 		void RenderModel(const Model& model, int& i) {
+			static char password[60]{};
+			static bool pwd_op = true;
 			ImGui::TableNextRow();
 			ImGui::PushID(i++);
 			ImGui::TableNextColumn();
 			if (ImGui::Selectable(model.name.c_str())) {
-				selected_path = model.path;
-				auto iter = std::find_if(recently_used.begin(), recently_used.end(),
-					[&](auto& x) {
-						return x == model.path.string();
-					});
-				if (iter != recently_used.end())
-					recently_used.erase(iter);
-				recently_used.insert(recently_used.begin(), model.path.string());
-				if (recently_used.size() > 5) {
-					recently_used.resize(5);
-				}
+				ImGui::OpenPopup("ContextMenu");
+				pwd_op = false;
 			}
+			if (ImGui::BeginPopup("ContextMenu")) {
+				if (pwd_op) {
+					ImGui::InputText("##input_pwd", password, 60);
+					if (ImGui::MenuItem("Encrypt and export")) {
+						auto fl = SystemDialogs::SaveFileDialog(model.name + ".package");
+						std::ofstream ofs{fl, std::ios::binary | std::ios::out};
+						if (ofs) {
+							RomPackage rp{};
+							// std::cout << std::filesystem::current_path();
+							rp.Load(model.path);
+							if (*password != 0) {
+								rp.Encrypt(password);
+							}
+							else {
+								rp.Encrypt("0x0d000721");
+							}
+							memset(password, 0, 60);
+							Binary::Write(ofs, rp);
+						}
+					}
+				}
+				else {
+					if (ImGui::MenuItem("Launch")) {
+						selected_path = model.path;
+						auto iter = std::find_if(recently_used.begin(), recently_used.end(),
+							[&](auto& x) {
+								return x == model.path.string();
+							});
+						if (iter != recently_used.end())
+							recently_used.erase(iter);
+						recently_used.insert(recently_used.begin(), model.path.string());
+						if (recently_used.size() > 5) {
+							recently_used.resize(5);
+						}
+					}
+					if (ImGui::MenuItem("Edit")) {
+						windows2->push_back(new ModelEditor(model.path));
+					}
+					if (ImGui::MenuItem("Export...")) {
+						ImGui::EndPopup();
+						ImGui::OpenPopup("ContextMenu");
+						pwd_op = true;
+						goto ed;
+					}
+				}
+				ImGui::EndPopup();
+			}
+		ed:
 			ImGui::TableNextColumn();
 			ImGui::TextUnformatted(model.version.c_str());
 			ImGui::TableNextColumn();
@@ -668,16 +742,8 @@ namespace casioemu {
 			}
 			ImGui::TableNextColumn();
 			ImGui::TextUnformatted(model.type.c_str());
-			ImGui::TableNextColumn();
-			if (ImGui::Button(
-#if LANGUAGE == 2
-					"编辑"
-#else
-					"Edit"
-#endif
-					)) {
-				windows2->push_back(new ModelEditor(model.path));
-			}
+			ImGui::SameLine();
+			ImGui::Dummy({0, ImGui::GetTextLineHeightWithSpacing()});
 			ImGui::PopID();
 		}
 	};
