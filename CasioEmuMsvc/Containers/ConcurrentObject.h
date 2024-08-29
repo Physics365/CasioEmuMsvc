@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <thread>
 template <class T>
 class ConcurrentObject {
 protected:
@@ -35,7 +36,7 @@ public:
 		~ObjectRef() {
 			if (own_lock) {
 				obj.mtx.unlock();
-				obj.own_thread = std::thread::id::id();
+				obj.own_thread = {};
 			}
 		}
 		T* operator->() {
@@ -60,7 +61,7 @@ public:
 		~ConstObjectRef() {
 			if (own_lock) {
 				obj.mtx.unlock();
-				obj.own_thread = std::thread::id::id();
+				obj.own_thread ={};
 			}
 		}
 		const T* operator->() {

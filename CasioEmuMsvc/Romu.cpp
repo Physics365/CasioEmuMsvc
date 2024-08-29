@@ -23,6 +23,9 @@ inline void calc2(word& sum, byte* bt, int len) {
 }
 
 RomInfo rom_info(std::vector<byte> rom,bool checksum) {
+    if (rom.empty()) {
+    return {};
+    }
 	auto dat = rom.data();
 	RomInfo ri{};
 	auto spinit = *(word*)dat;

@@ -2,7 +2,7 @@
 #include "../Chipset/MMU.hpp"
 #include "../Emulator.hpp"
 #include "imgui/imgui.h"
-int test_gui(bool* guiCreated);
+int test_gui(bool* guiCreated,SDL_Window*,SDL_Renderer*);
 void gui_cleanup();
 void gui_loop();
 extern char* n_ram_buffer;

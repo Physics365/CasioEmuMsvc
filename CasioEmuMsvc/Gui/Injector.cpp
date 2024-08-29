@@ -15,26 +15,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <windows.h>
-static std::string OpenFile() {
-	OPENFILENAMEA ofn;
-	char fileName[MAX_PATH] = "";
-
-	ZeroMemory(&ofn, sizeof(ofn));
-
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFilter = "All Files (*.*)\0*.*\0";
-	ofn.lpstrFile = fileName;
-	ofn.nMaxFile = MAX_PATH;
-	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-
-	if (GetOpenFileNameA(&ofn)) {
-		return std::string(fileName);
-	}
-
-	return "";
-}
 
 void Injector::RenderCore() {
 
@@ -233,7 +213,7 @@ void Injector::RenderCore() {
 	}
 
 	if (ImGui::BeginPopupModal("info", 0, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text(info_msg);
+		ImGui::Text("%s",info_msg);
 		if (ImGui::Button(
 #if LANGUAGE == 2
 				"好的"

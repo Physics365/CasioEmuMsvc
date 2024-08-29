@@ -1,7 +1,6 @@
 ﻿#include "Config.hpp"
 #include "Gui/imgui/imgui_impl_sdl2.h"
 #include "Gui/ui.hpp"
-
 #include <SDL.h>
 #include <SDL_image.h>
 #include <atomic>
@@ -14,70 +13,24 @@
 #include <ostream>
 #include <string>
 #include <thread>
-
-// #include "EventCode.hpp"
 #include "Emulator.hpp"
 #include "Logger.hpp"
 #include "SDL_events.h"
 #include "SDL_keyboard.h"
 #include "SDL_mouse.h"
 #include "SDL_video.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-#if _WIN32
-#include <Windows.h>
-#include <filesystem>
-std::string ShowOpenFileDialog() {
-	OPENFILENAMEA ofn{};
-	char szFile[260]{};
-
-	ofn.lStructSize = sizeof(ofn);
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = "Model Configuration\0Config.bin\0All Files\0*.*\0";
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-	GetOpenFileNameA(&ofn);
-	return std::filesystem::path(szFile).parent_path().string();
-}
-#pragma comment(lib, "winmm.lib")
-#endif
+#include <unistd.h>
 
 #include "StartupUi/StartupUi.h"
 
 using namespace casioemu;
 
-int main(int argc, char* argv[]) {
-#ifdef _WIN32
-	timeBeginPeriod(1);
-#endif //  _WIN32
-
-	std::map<std::string, std::string> argv_map;
-	for (int ix = 1; ix != argc; ++ix) {
-		std::string key, value;
-		char* eq_pos = strchr(argv[ix], '=');
-		if (eq_pos) {
-			key = std::string(argv[ix], eq_pos);
-			value = eq_pos + 1;
-		}
-		else {
-			key = "model";
-			value = argv[ix];
-		}
-
-		if (argv_map.find(key) == argv_map.end())
-			argv_map[key] = value;
-		else
-			logger::Info("[argv] #%i: key '%s' already set\n", ix, key.c_str());
-	}
-	bool headless = argv_map.find("headless") != argv_map.end();
-
+int SDL_main(int argc, char* argv[]) {
+    chdir(SDL_AndroidGetExternalStoragePath());
+    std::map<std::string,std::string> argv_map;
 	int sdlFlags = SDL_INIT_VIDEO | SDL_INIT_TIMER;
 	if (SDL_Init(sdlFlags) != 0)
 		PANIC("SDL_Init failed: %s\n", SDL_GetError());
@@ -86,15 +39,10 @@ int main(int argc, char* argv[]) {
 	if (IMG_Init(imgFlags) != imgFlags)
 		PANIC("IMG_Init failed: %s\n", IMG_GetError());
 
-	if (argv_map.find("model") == argv_map.end()) {
-		if (headless) {
-			PANIC("Please provide model path\n");
-		}
-		auto s = sui_loop();
-		argv_map["model"] = s;
-		if (s.empty())
-			return -1;
-	}
+    auto s = sui_loop();
+    argv_map["model"] = s;
+    if (s.empty())
+        return -1;
 
 	Emulator emulator(argv_map);
 	m_emu = &emulator;
@@ -115,7 +63,7 @@ int main(int argc, char* argv[]) {
 		}
 	});
 	t3.detach();
-	test_gui(&guiCreated);
+	test_gui(&guiCreated,emulator.window,emulator.renderer);
 	while (emulator.Running()) {
 		SDL_Event event{};
 		busy = false;
@@ -123,8 +71,11 @@ int main(int argc, char* argv[]) {
 			continue;
 		busy = true;
 		if (event.type == frame_event) {
-			gui_loop();
-			emulator.Frame();
+            SDL_SetRenderDrawColor(emulator.renderer, 0,0,0,255);
+            SDL_RenderClear(emulator.renderer);
+            emulator.Frame();
+            gui_loop();
+            SDL_RenderPresent(emulator.renderer);
 			continue;
 		}
 		switch (event.type) {
@@ -138,6 +89,11 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 			break;
+            case SDL_FINGERUP:
+            case SDL_FINGERDOWN:
+                if (!ImGui::GetIO().WantCaptureMouse)
+                    emulator.UIEvent(event);
+                break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 		case SDL_KEYDOWN:
@@ -146,13 +102,10 @@ int main(int argc, char* argv[]) {
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEWHEEL:
 		default:
-			if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
-				ImGui_ImplSDL2_ProcessEvent(&event);
-				continue;
-			}
-			emulator.UIEvent(event);
+            ImGui_ImplSDL2_ProcessEvent(&event);
 			break;
 		}
 	}
 	return 0;
 }
+

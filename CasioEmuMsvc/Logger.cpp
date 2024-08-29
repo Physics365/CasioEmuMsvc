@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <Windows.h>
 
 namespace casioemu
 {
@@ -17,7 +16,7 @@ namespace casioemu
 			
 		}
 		void Report(const char* what) {
-			MessageBoxA(0, what, "CasioEmu", 0);
+
 		}
 	}
 }

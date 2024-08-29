@@ -63,8 +63,11 @@ void CodeViewer::PrepareDisasm() {
 	std::thread t1([this]() {
 #ifndef _DEBUG
 		printf("Start to disasm ...\n");
+        uint8_t* datum = new uint8_t[m_emu->chipset.rom_data.size()+0x100];
+        memset(datum,0,m_emu->chipset.rom_data.size()+0x100);
+        memcpy(datum,m_emu->chipset.rom_data.data(),m_emu->chipset.rom_data.size());
 		uint8_t* beg = (uint8_t*)m_emu->chipset.rom_data.data();
-		auto rom = beg;
+		auto rom = datum;
 		auto end = rom + m_emu->chipset.rom_data.size();
 		std::stringstream ss{};
 		while (rom < end) {
@@ -73,10 +76,11 @@ void CodeViewer::PrepareDisasm() {
 			CodeElem ce{};
 			ce.offset = pc;
 			auto s = ss.str();
-			strcpy_s(ce.srcbuf, s.c_str());
+			strcpy(ce.srcbuf, s.c_str());
 			codes.push_back(ce);
 			ss.str("");
 		}
+        delete[] datum;
 		printf("Finished!\n");
 		max_row = codes.size();
 #endif

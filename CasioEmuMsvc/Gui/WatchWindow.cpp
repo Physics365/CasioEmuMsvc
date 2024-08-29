@@ -34,7 +34,7 @@ void WatchWindow::ShowRX() {
 		ImGui::SameLine();
 		sprintf(id, "##data%d", i);
 		ImGui::SetNextItemWidth(char_width * 3);
-		ImGui::Text((char*)&reg_rx[i][0]);
+		ImGui::Text("%s",(char*)&reg_rx[i][0]);
 	}
 	ImGui::Text("ERn: ");
 	for (int i = 0; i < 16; i += 2) {
@@ -46,11 +46,11 @@ void WatchWindow::ShowRX() {
 	}
 
 	auto show_sfr = ([&](char* ptr, const char* label, int i, int width = 4) {
-		ImGui::TextColored(ImVec4(0, 200, 0, 255), label);
+		ImGui::TextColored(ImVec4(0, 200, 0, 255), "%s",label);
 		ImGui::SameLine();
 		sprintf(id, "##sfr%d", i);
 		ImGui::SetNextItemWidth(char_width * width + 5);
-		ImGui::Text(ptr);
+		ImGui::Text("%s",ptr);
 	});
 	show_sfr(reg_pc, "PC: ", 1);
 	ImGui::SameLine();

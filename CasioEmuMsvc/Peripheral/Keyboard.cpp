@@ -11,6 +11,7 @@
 #include <fstream>
 #include <thread>
 #include <unordered_map>
+#include "vibration.h"
 
 namespace casioemu {
 	class Keyboard : public Peripheral {
@@ -215,7 +216,7 @@ namespace casioemu {
 				SDL_Keycode button_key;
 				button_key = SDL_GetKeyFromName(button_name);
 				if (button_key == SDLK_UNKNOWN)
-					printf("[Keyboard] Warn: Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
+					SDL_Log("[Keyboard] Warn: Key %x is being bind to a invalid or empty key '%s'\n", btn.kiko, button_name);
 
 				uint8_t code = btn.kiko;
 				size_t button_ix;
@@ -231,7 +232,7 @@ namespace casioemu {
 				if (button_key != SDLK_UNKNOWN) {
 					bool insert_success = keyboard_map.emplace(button_key, button_ix).second;
 					if (!insert_success)
-						printf("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
+						SDL_Log("[Keyboard] Warn: Key '%s' is used twice for key %x\n", button_name, btn.kiko);
 				}
 				std::string bn2;
 				if (btn.keyname.starts_with("Keypad ")) {
@@ -348,6 +349,15 @@ namespace casioemu {
 
 	void Keyboard::UIEvent(SDL_Event& event) {
 		switch (event.type) {
+            case SDL_FINGERDOWN:
+            case SDL_FINGERUP:
+                if (event.type == SDL_FINGERDOWN) {
+                    SDL_Log("Pressed at: %f %f",event.tfinger.x , event.tfinger.y);
+                    PressAt(event.tfinger.x , event.tfinger.y, false);
+                } else {
+                    ReleaseAll();
+                }
+                break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			switch (event.button.button) {
@@ -369,10 +379,10 @@ namespace casioemu {
 		case SDL_KEYUP:
 			SDL_Keycode keycode = event.key.keysym.sym;
 			auto iterator = keyboard_map.find(keycode);
-			printf("Key: %x(%s)\n", keycode, SDL_GetKeyName(keycode));
+			SDL_Log("Key: %x(%s)\n", keycode, SDL_GetKeyName(keycode));
 			if (event.key.keysym.sym == SDLK_F11 && event.key.state) {
 				factory_test = !factory_test;
-				printf("Factory test status: %d\n", factory_test);
+				SDL_Log("Factory test status: %d\n", factory_test);
 				return;
 			}
 			if (iterator == keyboard_map.end())
@@ -390,7 +400,6 @@ namespace casioemu {
 
 	void Keyboard::PressButton(Button& button, bool stick) {
 		bool old_pressed = button.pressed;
-
 		if (stick) {
 			button.stuck = !button.stuck;
 			button.pressed = button.stuck;
@@ -402,19 +411,18 @@ namespace casioemu {
 			if (!(emulator.hardware_id == HW_CLASSWIZ && (emulator.chipset.data_FCON & 0x03) == 0x03))
 				emulator.chipset.Reset();
 			else {
-				printf("RESETB is BLOCKED.Press Ctrl+F11 to reset.\n");
+				SDL_Log("RESETB is BLOCKED.Press Ctrl+F11 to reset.\n");
 			}
 		}
 		if (button.pressed && button.type == Button::BT_BUTTON) {
-			printf("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
+			SDL_Log("ki: %d,ko: %d\n", (int)(log(button.ki_bit) / log(2)), (int)(log(button.ko_bit) / log(2)));
+
+            SDL_Log("Vibrated.");
+            Vibration::vibrate(50);
 		}
 
 		if (button.type == Button::BT_BUTTON) {
 			if (real_hardware) {
-				if (button.pressed == old_pressed) {
-					ReleaseAll();
-					RecalculateGhost();
-				}
 				RecalculateGhost();
 			}
 			else {
@@ -576,6 +584,7 @@ namespace casioemu {
 
 	void Keyboard::ReleaseAll() {
 		bool had_effect = false;
+        SDL_Log("Release All called!");
 		for (auto& button : buttons) {
 			if (!button.stuck && button.pressed) {
 				button.pressed = false;

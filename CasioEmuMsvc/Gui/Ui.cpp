@@ -20,7 +20,6 @@
 char* n_ram_buffer = 0;
 casioemu::MMU* me_mmu = 0;
 
-static SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 static SDL_Window* window = 0;
 SDL_Renderer* renderer = 0;
 
@@ -69,58 +68,82 @@ void gui_loop() {
 	for (auto win : windows) {
 		win->Render();
 	}
+    ImGui::SetNextWindowBgAlpha(0.0f); // 设置透明背景
+    ImGui::Begin("Overlay", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+
+    ImGui::SetWindowPos(ImVec2(0, 0)); // 设置窗口位置，这决定了按钮的位置
+    static UIWindow* current_filter = 0;
+    if (ImGui::BeginCombo("##cb", current_filter ? current_filter->name : 0)) {
+        for (int n = 0; n < windows.size(); n++) {
+            bool is_selected = (current_filter == windows[n]); // You can store your selection however you want, outside or inside your objects
+            if (ImGui::Selectable(windows[n]->name, is_selected))
+                current_filter = windows[n];
+            if (is_selected)
+                ImGui::SetItemDefaultFocus(); // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Open")) {
+if(current_filter != 0)
+    current_filter->open = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Close all")) {
+        for(auto& win:windows){
+            win->open = false;
+        }
+    }
+    ImGui::End();
 	ImGui::Render();
 	SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-	SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
-	SDL_RenderClear(renderer);
 	ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-	SDL_RenderPresent(renderer);
 }
-int test_gui(bool* guiCreated) {
-	window = SDL_CreateWindow("CasioEmuMsvc Debugger", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+int test_gui(bool* guiCreated,SDL_Window* wd,SDL_Renderer* rd) {
+	window = wd;
+	renderer = rd;
 	if (renderer == nullptr) {
 		SDL_Log("Error creating SDL_Renderer!");
 		return 0;
 	}
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	ImFontConfig config;
-	config.MergeMode = true;
-	if (std::filesystem::exists("C:\\Windows\\Fonts\\CascadiaCode.ttf"))
-		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\CascadiaCode.ttf", 15);
-	else {
-		printf("[Ui][Warn] \"CascadiaCode.ttf\" not found\n");
-		io.Fonts->AddFontDefault();
-	}
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.FontGlobalScale = 3;
+    ImFontConfig config{};
+   // config.OversampleH = 4;
+   // config.OversampleV = 4;
+   // config.PixelSnapH = true;
+    config.MergeMode = true;
+    io.Fonts->AddFontDefault();
 #if LANGUAGE == 2
-	if (std::filesystem::exists("NotoSansSC-Medium.otf"))
-		io.Fonts->AddFontFromFileTTF("NotoSansSC-Medium.otf", 18, &config, GetKanji());
-	else if (std::filesystem::exists("C:\\Windows\\Fonts\\msyh.ttc")) {
-		printf("[Ui][Warn] fallback to MSYH.\n");
-		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18, &config, GetKanji());
-	}
-	else {
-		printf("[Ui][Warn] No chinese font available!\n");
-	}
+    if (std::filesystem::exists("/system/fonts/NotoSansCJK-Regular.ttc"))
+        io.Fonts->AddFontFromFileTTF("/system/fonts/NotoSansCJK-Regular.ttc", 18, &config, GetKanji());
+    else {
+        printf("[Ui][Warn] No chinese font available!\n");
+    }
 #else
 #endif
-	// config.GlyphOffset = ImVec2(0,1.5);
-	io.Fonts->Build();
-	io.WantCaptureKeyboard = true;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-	// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    //  config.GlyphOffset = ImVec2(0,1.5);
+    io.Fonts->Build();
+    io.WantCaptureKeyboard = true;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-	// Setup Platform/Renderer backends
-	ImGui::StyleColorsDark();
+    // Setup Platform/Renderer backends
+    ImGui::StyleColorsDark();
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = 4.0f;
 	style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	style.FrameRounding = 4.0f;
+style.ScrollbarSize = 40.f;
+style.ScrollbarRounding = 4.0f;
+    style.ItemInnerSpacing = {10.0f,10.0f};
+    style.ItemSpacing = {20.0f,20.0f};
+    style.GrabMinSize = 40.f;
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
@@ -142,7 +165,13 @@ int test_gui(bool* guiCreated) {
 		windows.push_back(item);
 	for (auto item : GetEditors())
 		windows.push_back(item);
-	return 0;
+
+    for(auto item: windows){
+        item->open = false;
+    }
+
+
+    return 0;
 }
 
 void gui_cleanup() {

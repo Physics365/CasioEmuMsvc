@@ -22,7 +22,6 @@
 #include "../Peripheral/Timer.hpp"
 #include "../Peripheral/TimerBaseCounter.hpp"
 #include "../Peripheral/WatchdogTimer.hpp"
-#include "../Romu.h"
 #include "CPU.hpp"
 // #include "HighResClock.h"
 #include "InterruptSource.hpp"
@@ -331,18 +330,6 @@ namespace casioemu {
 		if (rom_handle.fail())
 			PANIC("std::ifstream failed: %s\n", std::strerror(errno));
 		rom_data = std::vector<unsigned char>((std::istreambuf_iterator<char>(rom_handle)), std::istreambuf_iterator<char>());
-
-		{
-			auto ri = rom_info(rom_data);
-			if (ri.ok) {
-				printf("[Chipset] Model:       %s\n", ri.ver);
-				printf("[Chipset] CalcID:      %llx\n", *(unsigned long long*)ri.cid);
-				printf("[Chipset] Target SUM:  %02x ,Calculated SUM: %02x\n", ri.desired_sum, ri.real_sum);
-				auto res = (ri.real_sum == ri.desired_sum);
-				if (res != real_hardware)
-					printf("[Chipset][Warn] SUM %s!\n", res ? "OK" : "NG");
-			}
-		}
 
 		if (emulator.hardware_id == HW_FX_5800P) {
 			std::ifstream flash_handle(emulator.GetModelFilePath(emulator.modeldef.flash_path), std::ifstream::binary);

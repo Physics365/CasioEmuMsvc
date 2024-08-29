@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ConcurrentObject.h"
+#include "Containers/ConcurrentObject.h"
 #include <cstdint>
 #include <cstdio>
 #include <exception>
@@ -14,10 +14,10 @@
 #else
 #define FUNCTION_NAME __func__
 #endif
-#define PANIC(...)           \
-	{                        \
-		printf(__VA_ARGS__); \
-		__debugbreak();      \
+#define PANIC(...)            \
+	{                         \
+		SDL_Log(__VA_ARGS__); \
+		std::abort();         \
 	}
 
 // Languages:
@@ -25,7 +25,7 @@
 // 2 - Chinese
 
 #define LANGUAGE 1
-//#define LANGUAGE 2
+// #define LANGUAGE 2
 
 #define LOCK(x) \
 	std::lock_guard<std::mutex> lock_##x{x};

@@ -61,14 +61,14 @@ void VariableWindow::RenderCore() {
 		if (is_in_im && !strcmp(v.Name, "PreAns"))
 			continue;
 		std::string s;
-		ImGui::Text(v.Name);
+		ImGui::Text("%s",v.Name);
 		ImGui::SameLine(90);
 		s = cwii::StringizeCwiiNumber(base_addr + v.RealPartOffset);
-		ImGui::Text(s.c_str());
+		ImGui::Text("%s",s.c_str());
 		if (s_im) {
 			ImGui::SameLine(320);
 			s = cwii::StringizeCwiiNumber(base_addr + v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id));
-			ImGui::Text(s.c_str());
+			ImGui::Text("%s",s.c_str());
 		}
 		if (showhex) {
 			ImGui::Text(
@@ -80,11 +80,11 @@ void VariableWindow::RenderCore() {
 			);
 			ImGui::SameLine(90);
 			s = cwii::HexizeString(base_addr + v.RealPartOffset, casioemu::GetVariableSize(m_emu->hardware_id));
-			ImGui::Text(s.c_str());
+			ImGui::Text("%s",s.c_str());
 			if (s_im) {
 				ImGui::SameLine(320);
 				s = cwii::HexizeString(base_addr + v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id), casioemu::GetVariableSize(m_emu->hardware_id));
-				ImGui::Text(s.c_str());
+				ImGui::Text("%s",s.c_str());
 			}
 		}
 		if (showaddr) {
@@ -97,11 +97,11 @@ void VariableWindow::RenderCore() {
 			);
 			ImGui::SameLine(90);
 			s = to_hex(v.RealPartOffset);
-			ImGui::Text(s.c_str());
+			ImGui::Text("%s",s.c_str());
 			if (s_im) {
 				ImGui::SameLine(320);
 				s = to_hex(v.RealPartOffset + casioemu::GetReImOffset(m_emu->hardware_id));
-				ImGui::Text(s.c_str());
+				ImGui::Text("%s",s.c_str());
 			}
 		}
 	}
@@ -109,7 +109,7 @@ void VariableWindow::RenderCore() {
 		ImGui::Text("Theta");
 		ImGui::SameLine(90);
 		auto a = cwii::StringizeCwiiNumber(n_ram_buffer + 0xBDEC - 0x9000);
-		ImGui::Text(a.c_str());
+		ImGui::Text("%s",a.c_str());
 		if (showaddr) {
 			ImGui::Text(
 #if LANGUAGE == 2
