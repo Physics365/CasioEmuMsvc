@@ -674,7 +674,6 @@ namespace casioemu {
 						std::ofstream ofs{fl, std::ios::binary | std::ios::out};
 						if (ofs) {
 							RomPackage rp{};
-							// std::cout << std::filesystem::current_path();
 							rp.Load(model.path);
 							if (*password != 0) {
 								rp.Encrypt(password);
@@ -700,6 +699,11 @@ namespace casioemu {
 						if (recently_used.size() > 5) {
 							recently_used.resize(5);
 						}
+					}
+					if (ImGui::MenuItem("Reveal in Explorer")) {
+						char buffer[480];
+						sprintf_s(buffer, "explorer.exe \"%s\"",model.path.string().c_str());
+						system(buffer); // right this will only work for windows lol
 					}
 					if (ImGui::MenuItem("Edit")) {
 						windows2->push_back(new ModelEditor(model.path));

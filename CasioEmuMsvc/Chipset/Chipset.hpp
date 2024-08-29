@@ -30,6 +30,7 @@ namespace casioemu {
 			INT_COUNT = 128
 		};
 
+	public:
 		enum RunMode {
 			RM_STOP,
 			RM_HALT,
@@ -37,6 +38,7 @@ namespace casioemu {
 		};
 		RunMode run_mode;
 
+	private:
 		std::forward_list<Peripheral*> peripherals;
 
 		/**

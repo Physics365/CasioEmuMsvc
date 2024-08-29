@@ -71,10 +71,6 @@ void CodeViewer::SetupHooks() {
 				iea.should_break = true;
 			}
 		});
-	SetupHook(on_call_function, [&](casioemu::CPU& cup, const FunctionEventArgs& ea) {
-		if (debug_flags & DEBUG_RET_TRACE) {
-		}
-	});
 	cv_a = this;
 }
 void SetDebugbreak(void) {

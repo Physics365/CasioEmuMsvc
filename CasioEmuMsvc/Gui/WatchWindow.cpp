@@ -139,6 +139,42 @@ void WatchWindow::RenderCore() {
 	char_width = ImGui::CalcTextSize("F").x;
 	casioemu::Chipset& chipset = m_emu->chipset;
 	ImGui::BeginChild("##reg_trace", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4 + ImGui::GetStyle().ItemInnerSpacing.y * 4), false, 0);
+	auto rm = m_emu->chipset.run_mode;
+	using casioemu::Chipset::RM_HALT;
+	using casioemu::Chipset::RM_RUN;
+	using casioemu::Chipset::RM_STOP;
+	ImGui::Text(
+#if LANGUAGE == 2
+		"核心状态: %s"
+#else
+		"Core status: %s"
+#endif
+		,
+		rm == RM_RUN ? "Run" : (rm == RM_STOP ? "Stop" : (rm == RM_HALT ? "Halt" : "?")));
+	//ImGui::Text("Psw");
+	//for (size_t i = 0; i < 8; i++) {
+	//	ImGui::SameLine(i * 25. + 50.);
+	//	ImGui::Text("%zu", i);
+	//}
+	//ImGui::Dummy(ImVec2(0, 0));
+
+	//bool changed = false;
+	//for (size_t i = 0; i < 8; i++) {
+	//	ImGui::SameLine(i * 25. + 50.);
+	//	if (ImGui::Checkbox(("##" + std::to_string(i)).c_str(), &pdx[i])) {
+	//		changed = true;
+	//	}
+	//}
+
+	//if (changed) {
+	//	pd = 0;
+	//	for (int i = 0; i < 8; i++) {
+	//		if (pdx[i]) {
+	//			pd |= (1 << i);
+	//		}
+	//	}
+	//	m_emu->modeldef.pd_value = pd;
+	//}
 	PrepareRX();
 	if (!m_emu->GetPaused()) {
 		ShowRX();
