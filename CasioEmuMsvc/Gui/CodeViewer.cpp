@@ -107,7 +107,8 @@ void CodeViewer::PrepareDisasm() {
 	std::thread t1([this]() {
 #ifndef _DEBUG
 		printf("[UI][Info] Start to disasm ...\n");
-		uint8_t* beg = (uint8_t*)m_emu->chipset.rom_data.data();
+		auto dat = std::make_unique<uint8_t>(m_emu->chipset.rom_data.size() + 0x100);
+		uint8_t* beg = dat.get();
 		auto rom = beg;
 		auto end = rom + m_emu->chipset.rom_data.size();
 		printf("[UI][Info] Pass1: decoding opcodes...\n");
