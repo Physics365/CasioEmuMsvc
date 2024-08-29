@@ -14,18 +14,16 @@
 #include <ostream>
 #include <string>
 #include <thread>
-
-// #include "EventCode.hpp"
 #include "Emulator.hpp"
 #include "Logger.hpp"
 #include "SDL_events.h"
 #include "SDL_keyboard.h"
 #include "SDL_mouse.h"
 #include "SDL_video.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 #if _WIN32
 #include <Windows.h>
@@ -71,15 +69,10 @@ int main(int argc, char* argv[]) {
 	if (IMG_Init(imgFlags) != imgFlags)
 		PANIC("IMG_Init failed: %s\n", IMG_GetError());
 
-	if (argv_map.find("model") == argv_map.end()) {
-		if (headless) {
-			PANIC("Please provide model path\n");
-		}
-		auto s = sui_loop();
-		argv_map["model"] = s;
-		if (s.empty())
-			return -1;
-	}
+    auto s = sui_loop();
+    argv_map["model"] = s;
+    if (s.empty())
+        return -1;
 
 	Emulator emulator(argv_map);
 	m_emu = &emulator;
@@ -132,6 +125,11 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 			break;
+            case SDL_FINGERUP:
+            case SDL_FINGERDOWN:
+                if (!ImGui::GetIO().WantCaptureMouse)
+                    emulator.UIEvent(event);
+                break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 		case SDL_KEYDOWN:
@@ -152,3 +150,4 @@ int main(int argc, char* argv[]) {
 	}
 	return 0;
 }
+

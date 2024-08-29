@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <mutex>
+#include <thread>
 template <class T>
 class ConcurrentObject {
 protected:

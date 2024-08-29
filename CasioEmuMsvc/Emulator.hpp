@@ -36,7 +36,7 @@ namespace casioemu
 
 	class Emulator
 	{
-		
+    public:
 		SDL_Renderer *renderer;
 		SDL_Surface* interface_surface;
 		SDL_Texture *interface_texture;

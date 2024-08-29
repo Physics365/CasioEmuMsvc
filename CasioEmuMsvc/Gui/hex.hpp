@@ -115,7 +115,7 @@ struct MemoryEditor {
 		// Settings
 		Open = true;
 		ReadOnly = false;
-		Cols = 16;
+		Cols = 8;
 		OptShowOptions = true;
 		OptShowDataPreview = false;
 		OptShowHexII = false;
@@ -420,7 +420,7 @@ struct MemoryEditor {
 		size_t length{};
 		ImColor color{};
 		const char* desc{};
-		bool operator<(const MarkedSpan& b) {
+		bool operator<(const MarkedSpan& b)const  {
 			return start < b.start;
 		}
 	};

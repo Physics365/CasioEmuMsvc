@@ -12,6 +12,7 @@
 #include <fstream>
 #include <thread>
 #include <unordered_map>
+#include "vibration.h"
 
 namespace casioemu {
 	class Keyboard : public Peripheral {
@@ -391,6 +392,15 @@ namespace casioemu {
 
 	void Keyboard::UIEvent(SDL_Event& event) {
 		switch (event.type) {
+            case SDL_FINGERDOWN:
+            case SDL_FINGERUP:
+                if (event.type == SDL_FINGERDOWN) {
+                    SDL_Log("Pressed at: %f %f",event.tfinger.x , event.tfinger.y);
+                    PressAt(event.tfinger.x , event.tfinger.y, false);
+                } else {
+                    ReleaseAll();
+                }
+                break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			switch (event.button.button) {
@@ -439,7 +449,6 @@ namespace casioemu {
 
 	void Keyboard::PressButton(Button& button, bool stick) {
 		bool old_pressed = button.pressed;
-
 		if (stick) {
 			button.stuck = !button.stuck;
 			button.pressed = button.stuck;
@@ -468,10 +477,6 @@ namespace casioemu {
 
 		if (button.type == Button::BT_BUTTON) {
 			if (real_hardware) {
-				if (button.pressed == old_pressed) {
-					ReleaseAll();
-					RecalculateGhost();
-				}
 				RecalculateGhost();
 			}
 			else {
@@ -653,6 +658,7 @@ namespace casioemu {
 
 	void Keyboard::ReleaseAll() {
 		bool had_effect = false;
+        SDL_Log("Release All called!");
 		for (auto& button : buttons) {
 			if (!button.stuck && button.pressed) {
 				button.pressed = false;

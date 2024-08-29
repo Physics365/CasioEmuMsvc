@@ -22,7 +22,6 @@
 char* n_ram_buffer = 0;
 casioemu::MMU* me_mmu = 0;
 
-static SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 static SDL_Window* window = 0;
 SDL_Renderer* renderer = 0;
 
@@ -76,10 +75,7 @@ void gui_loop() {
 	}
 	ImGui::Render();
 	SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-	SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
-	SDL_RenderClear(renderer);
 	ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-	SDL_RenderPresent(renderer);
 }
 int test_gui(bool* guiCreated) {
 	SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");

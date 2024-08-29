@@ -146,12 +146,15 @@ static void ImGui_ImplSDL2_SetPlatformImeData(ImGuiContext*,ImGuiViewport*, ImGu
 {
     if (data->WantVisible)
     {
-        SDL_Rect r;
+        /*SDL_Rect r;
         r.x = (int)data->InputPos.x;
         r.y = (int)data->InputPos.y;
         r.w = 1;
         r.h = (int)data->InputLineHeight;
-        SDL_SetTextInputRect(&r);
+        SDL_SetTextInputRect(&r);*/
+        SDL_StartTextInput();
+    }else {
+        // SDL_StopTextInput();
     }
 }
 
