@@ -467,7 +467,7 @@ namespace casioemu {
                     0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking);
             static char password[256] = "";
             static bool show_password_input = false;
-            static std::string current_file;
+            static std::filesystem::path current_file;
             static RomPackage current_rp;
             static bool password_error = false;
 
@@ -479,8 +479,8 @@ namespace casioemu {
                     Binary::Read(ifs, rp);
                     if (rp.IsEncrypted) {
                         show_password_input = true;
-                        current_file = f.string();
-                        current_rp = rp;
+                        current_file = f;
+                        current_rp = std::move(rp);
                         password_error = false;  // 重置错误状态
                         memset(password, 0, sizeof(password));  // 清空密码输入框
                     } else {
