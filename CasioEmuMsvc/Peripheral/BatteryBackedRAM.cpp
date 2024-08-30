@@ -2,7 +2,7 @@
 #include "Chipset/Chipset.hpp"
 #include "Chipset/MMU.hpp"
 #include "Emulator.hpp"
-#include "Gui/ui.hpp"
+#include "Gui/Ui.hpp"
 #include "Logger.hpp"
 #include "ModelInfo.h"
 #include "Models.h"
@@ -27,8 +27,8 @@ namespace casioemu {
 		using Peripheral::Peripheral;
 		uint8_t* ram_buffer{};
 		uint8_t* pram_buffer{};
-		void Initialise();
-		void Uninitialise();
+		void Initialise() override;
+		void Uninitialise() override;
 		void SaveRAMImage();
 		void LoadRAMImage();
 
@@ -39,7 +39,7 @@ namespace casioemu {
 		void* GetPRam() override {
 			return pram_buffer;
 		}
-		virtual void* QueryInterface(const char* name) {
+		virtual void* QueryInterface(const char* name) override{
 			if (strcmp(name, typeid(IRam).name()) == 0) {
 				return (IRam*)this;
 			}

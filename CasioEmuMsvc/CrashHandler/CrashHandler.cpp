@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#ifdef _WIN32
+#include <iostream>
 #include <windows.h>
 
 #include <dbghelp.h>
@@ -117,3 +118,4 @@ void PrintStackTrace(EXCEPTION_POINTERS* pExceptionPointers) {
 
 	SymCleanup(hProcess);
 }
+#endif

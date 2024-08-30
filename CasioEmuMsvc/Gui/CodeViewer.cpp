@@ -107,7 +107,9 @@ void CodeViewer::PrepareDisasm() {
 	std::thread t1([this]() {
 #ifndef _DEBUG
 		printf("[UI][Info] Start to disasm ...\n");
-		auto dat = std::make_unique<uint8_t>(m_emu->chipset.rom_data.size() + 0x100);
+		auto dat = std::unique_ptr<uint8_t>(new uint8_t[m_emu->chipset.rom_data.size() + 0x100]);
+		std::memset(dat.get(), 0xff, m_emu->chipset.rom_data.size() + 0x100);
+		std::memcpy(dat.get(), m_emu->chipset.rom_data.data(), m_emu->chipset.rom_data.size());
 		uint8_t* beg = dat.get();
 		auto rom = beg;
 		auto end = rom + m_emu->chipset.rom_data.size();
@@ -120,10 +122,10 @@ void CodeViewer::PrepareDisasm() {
 			auto size = rom - before;
 			CodeElem ce{};
 			if (size == 2) {
-				sprintf_s(ce.srcbuf, "%04X         ", (*(uint16_t*)before));
+				sprintf(ce.srcbuf, "%04X         ", (*(uint16_t*)before));
 			}
 			else if (size == 4) {
-				sprintf_s(ce.srcbuf, "%04X %04X    ", (*(uint16_t*)before), ((uint16_t*)before)[1]);
+				sprintf(ce.srcbuf, "%04X %04X    ", (*(uint16_t*)before), ((uint16_t*)before)[1]);
 			}
 			else {
 				strcpy(ce.srcbuf, "             ");
@@ -152,7 +154,7 @@ void CodeViewer::PrepareDisasm() {
 			ce.is_label = true;
 			if (lb.second) {
 				auto symb = lookup_symbol(lb.first);
-				strcpy_s(ce.srcbuf, symb.c_str());
+				strcpy(ce.srcbuf, symb.c_str());
 				ce.offset = 0;
 				labels[lb.first] = std::move(symb);
 				last_label = lb.first;
@@ -161,7 +163,7 @@ void CodeViewer::PrepareDisasm() {
 				if (last_label.has_value()) {
 					char buf[20]{};
 					auto symb = std::string(".l_") + SDL_itoa(lb.first - *last_label, buf, 16);
-					strcpy_s(ce.srcbuf, symb.c_str());
+					strcpy(ce.srcbuf, symb.c_str());
 					ce.offset = 0;
 					labels[lb.first] = std::move(symb);
 				}
@@ -175,7 +177,7 @@ void CodeViewer::PrepareDisasm() {
 			if (iter != labels.end()) {
 				CodeElem ce2{};
 				ce2.is_label = true;
-				strcpy_s(ce2.srcbuf, (iter->second + ":").c_str());
+				strcpy(ce2.srcbuf, (iter->second + ":").c_str());
 				ce2.offset = 0;
 				finals.push_back(ce2);
 			}

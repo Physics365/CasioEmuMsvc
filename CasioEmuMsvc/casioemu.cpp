@@ -2,11 +2,20 @@
 #include "Ui.hpp"
 #include "imgui_impl_sdl2.h"
 
+#include "Emulator.hpp"
+#include "Logger.hpp"
+#include "SDL_events.h"
+#include "SDL_keyboard.h"
+#include "SDL_mouse.h"
+#include "SDL_video.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -14,20 +23,14 @@
 #include <ostream>
 #include <string>
 #include <thread>
-#include "Emulator.hpp"
-#include "Logger.hpp"
-#include "SDL_events.h"
-#include "SDL_keyboard.h"
-#include "SDL_mouse.h"
-#include "SDL_video.h"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <unistd.h>
 
 #if _WIN32
 #include <Windows.h>
 #pragma comment(lib, "winmm.lib")
+#endif
+
+#ifdef  __ANDROID__
+#include <unistd.h>
 #endif
 
 #include "StartupUi/StartupUi.h"
@@ -40,6 +43,9 @@ int main(int argc, char* argv[]) {
 	SetConsoleCP(65001); // Set to UTF8
 	SetConsoleOutputCP(65001);
 #endif //  _WIN32
+#ifdef __ANDROID__
+	chdir(SDL_AndroidGetExternalStoragePath());
+#endif
 
 	std::map<std::string, std::string> argv_map;
 	for (int ix = 1; ix != argc; ++ix) {
@@ -69,10 +75,10 @@ int main(int argc, char* argv[]) {
 	if (IMG_Init(imgFlags) != imgFlags)
 		PANIC("IMG_Init failed: %s\n", IMG_GetError());
 
-    auto s = sui_loop();
-    argv_map["model"] = s;
-    if (s.empty())
-        return -1;
+	auto s = sui_loop();
+	argv_map["model"] = s;
+	if (s.empty())
+		return -1;
 
 	Emulator emulator(argv_map);
 	m_emu = &emulator;
@@ -94,8 +100,14 @@ int main(int argc, char* argv[]) {
 	});
 	t3.detach();
 #ifdef DBG
-	test_gui(&guiCreated);
+	test_gui(&guiCreated, emulator.window, emulator.renderer);
 #endif
+	SDL_Surface* background = IMG_Load("background.jpg");
+	SDL_Texture* bg_txt = 0;
+	if (background) {
+		bg_txt = SDL_CreateTextureFromSurface(renderer, background);
+	}
+
 	while (emulator.Running()) {
 		SDL_Event event{};
 		busy = false;
@@ -103,10 +115,46 @@ int main(int argc, char* argv[]) {
 			continue;
 		busy = true;
 		if (event.type == frame_event) {
-#ifdef DBG
-			gui_loop();
-#endif
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			SDL_RenderClear(renderer);
+			if (bg_txt) {
+				int w, h;
+				SDL_GetWindowSize(window, &w, &h);
+				int bg_w, bg_h;
+				SDL_QueryTexture(bg_txt, NULL, NULL, &bg_w, &bg_h);
+
+				float window_aspect = (float)w / h;
+				float bg_aspect = (float)bg_w / bg_h;
+
+				SDL_Rect dst_rect;
+				if (window_aspect > bg_aspect) {
+					dst_rect.w = w;
+					dst_rect.h = (int)(w / bg_aspect);
+					dst_rect.x = 0;
+					dst_rect.y = (h - dst_rect.h) / 2;
+				}
+				else {
+					dst_rect.h = h;
+					dst_rect.w = (int)(h * bg_aspect);
+					dst_rect.x = (w - dst_rect.w) / 2;
+					dst_rect.y = 0;
+				}
+
+				SDL_RenderCopy(renderer, bg_txt, NULL, &dst_rect);
+			}
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 20);
+			SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+			SDL_RenderFillRect(renderer, 0);
+#ifdef SINGLE_WINDOW
 			emulator.Frame();
+			gui_loop();
+			SDL_RenderPresent(emulator.renderer);
+#else
+			gui_loop();
+			emulator.Frame();
+			SDL_RenderPresent(emulator.renderer);
+#endif
+
 			while (SDL_PollEvent(&event)) {
 				if (event.type != frame_event)
 					goto hld;
@@ -125,11 +173,8 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 			break;
-            case SDL_FINGERUP:
-            case SDL_FINGERDOWN:
-                if (!ImGui::GetIO().WantCaptureMouse)
-                    emulator.UIEvent(event);
-                break;
+		case SDL_FINGERUP:
+		case SDL_FINGERDOWN:
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 		case SDL_KEYDOWN:
@@ -138,16 +183,19 @@ int main(int argc, char* argv[]) {
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEWHEEL:
 		default:
-#ifdef DBG
-			if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
-				ImGui_ImplSDL2_ProcessEvent(&event);
-				continue;
-			}
+            ImGui_ImplSDL2_ProcessEvent(&event);
+			if (
+#ifdef SINGLE_WINDOW
+				ImGui::GetIO().WantCaptureMouse
+#else
+				(SDL_GetKeyboardFocus() != emulator.window) && guiCreated
 #endif
+			) {
+				break;
+			}
 			emulator.UIEvent(event);
 			break;
 		}
 	}
 	return 0;
-}
-
+};

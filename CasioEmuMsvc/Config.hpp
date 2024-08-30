@@ -14,6 +14,11 @@
 #else
 #define FUNCTION_NAME __func__
 #endif
+
+#ifdef __clang__
+#define __debugbreak __builtin_trap
+#endif
+
 #define ENABLE_CRASH_CHECK
 #ifdef ENABLE_CRASH_CHECK
 #define PANIC(...)           \
@@ -38,3 +43,8 @@
 // Enable debug feature
 
 #define DBG
+
+// #define SINGLE_WINDOW
+#if !defined(SINGLE_WINDOW) && defined(__ANDROID__)
+#define SINGLE_WINDOW
+#endif

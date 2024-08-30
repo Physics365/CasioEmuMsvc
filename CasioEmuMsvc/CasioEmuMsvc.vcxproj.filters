@@ -186,6 +186,9 @@
     <ClCompile Include="Ext\SysDialog.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Ext\vibration.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.hpp">
@@ -399,6 +402,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Ext\SysDialog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ext\vibration.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Gui.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

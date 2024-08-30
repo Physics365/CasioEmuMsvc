@@ -110,7 +110,7 @@ namespace cwii {
 				auto s = ed[upper];
 				auto it = LoadInt(&p[1], 5, bn[upper]);
 				char buffer[20];
-				_ltoa_s(it, buffer, bn[upper]);
+				SDL_ltoa(it, buffer, bn[upper]);
 				return (sign ? "-" : "") + (std::string)buffer + s;
 			}
 			if (p[7] == 0x02) {

@@ -476,6 +476,7 @@ namespace casioemu {
 		}
 
 		if (button.type == Button::BT_BUTTON) {
+			Vibration::vibrate(100);
 			if (real_hardware) {
 				RecalculateGhost();
 			}

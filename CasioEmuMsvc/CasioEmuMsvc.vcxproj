@@ -361,6 +361,7 @@
     <ClCompile Include="Ext\Romu.cpp" />
     <ClCompile Include="Ext\U8Disas.cpp" />
     <ClCompile Include="Peripheral\VoltageLevelSupervisor.cpp" />
+    <ClCompile Include="Ext\vibration.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Binary.h" />
@@ -434,6 +435,8 @@
     <ClInclude Include="StartupUi\StartupUi.h" />
     <ClInclude Include="Ext\U8Disas.h" />
     <ClInclude Include="Peripheral\VoltageLevelSupervisor.h" />
+    <ClInclude Include="Ext\vibration.h" />
+    <ClInclude Include="Gui.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

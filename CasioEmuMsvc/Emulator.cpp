@@ -6,6 +6,7 @@
 #include "ModelInfo.h"
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -69,7 +70,6 @@ namespace casioemu {
 		catch (std::out_of_range const&) {
 			PANIC("out of range width/height parameter\n");
 		}
-
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");
 		window = SDL_CreateWindow(
 			std::string(modeldef.model_name).c_str(),
@@ -164,23 +164,29 @@ namespace casioemu {
 
 	void Emulator::UIEvent(SDL_Event& event) {
 		// std::lock_guard<decltype(access_mx)> access_lock(access_mx);
-        SDL_Log("event: %d",event.type);
 
 		switch (event.type) {
+		case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
+			event.button.x -= emu_rect.x;
+			event.button.x *= (float)interface_background.dest.w / emu_rect.w;
+			event.button.y -= emu_rect.y;
+			event.button.y *= (float)interface_background.dest.h / emu_rect.h;
+			break;
 		case SDL_FINGERDOWN:
 		case SDL_FINGERUP: {
-            // std::swap(event.tfinger.x,event.tfinger.y);
-            int w, h;
-            SDL_GetWindowSize(window, &w, &h);
-            event.tfinger.x *= w;
-            event.tfinger.y *= h;
+			// std::swap(event.tfinger.x,event.tfinger.y);
+			int w, h;
+			SDL_GetWindowSize(window, &w, &h);
+			event.tfinger.x *= w;
+			event.tfinger.y *= h;
 
-            event.tfinger.x -= emu_rect.x;
-            event.tfinger.x *= (float) interface_background.dest.w / emu_rect.w;
-            event.tfinger.y -= emu_rect.y;
-            event.tfinger.y *= (float) interface_background.dest.h / emu_rect.h;
-            break;
-        }
+			event.tfinger.x -= emu_rect.x;
+			event.tfinger.x *= (float)interface_background.dest.w / emu_rect.w;
+			event.tfinger.y -= emu_rect.y;
+			event.tfinger.y *= (float)interface_background.dest.h / emu_rect.h;
+			break;
+		}
 		}
 		chipset.UIEvent(event);
 	}
@@ -205,7 +211,12 @@ namespace casioemu {
 	}
 
 	std::string Emulator::GetModelFilePath(std::string relative_path) {
-		return  SDL_AndroidGetExternalStoragePath() / std::filesystem::path(model_path) / relative_path;
+		return
+#ifdef __ANDROID__
+			(SDL_AndroidGetExternalStoragePath() / std::filesystem::path(model_path) / relative_path).string();
+#else
+			(std::filesystem::path(model_path) / relative_path).string();
+#endif
 	}
 
 	void Emulator::TimerCallback() {

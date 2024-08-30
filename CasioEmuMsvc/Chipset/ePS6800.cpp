@@ -1,4 +1,5 @@
-﻿#include <cstdint>
+﻿#if 0
+#include <cstdint>
 #include <vector>
 namespace casioemu {
 	class ePS6800CPU {
@@ -230,3 +231,4 @@ namespace casioemu {
 		}
 	};
 } // namespace casioemu
+#endif

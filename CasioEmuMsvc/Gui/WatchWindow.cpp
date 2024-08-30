@@ -13,7 +13,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iomanip>
-#include <ranges>
 #include <stdlib.h>
 
 void WatchWindow::PrepareRX() {
@@ -203,7 +202,19 @@ void WatchWindow::RenderCore() {
 		ImGui::TableSetupColumn("LR", ImGuiTableColumnFlags_WidthStretch, 1);
 		ImGui::TableHeadersRow();
 		auto stack = chipset.cpu.stack.get();
-		for (auto& frame : std::ranges::reverse_view(*stack)) {
+        class reverse_view{
+        public:
+            reverse_view(decltype(*stack)& vector1) :stk(vector1){}
+            decltype(*stack)& stk;
+            auto begin(){
+                return stk.rbegin();
+            }
+            auto end(){
+                return stk.rend();
+            }
+        };
+
+		for (auto& frame : reverse_view{*stack}) {
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
 			ImGui::TextUnformatted(lookup_symbol(frame.new_pc).c_str());

@@ -87,10 +87,10 @@ inline auto MMU_Hex(auto he) {
 }
 inline auto Highlight_Default(auto he) {
 	he->HighlightFn = [](const ImU8* data, size_t off) -> bool {
-		if ((uint32_t)(data + off) == (uint32_t)m_emu->chipset.cpu.reg_sp) {
+		if ((size_t)(data + off) == m_emu->chipset.cpu.reg_sp) {
 			return true;
 		}
-		if ((uint32_t)(data + off) == (uint32_t)casioemu::GetInputAreaOffset(m_emu->hardware_id) + *((unsigned char*)n_ram_buffer - casioemu::GetRamBaseAddr(m_emu->hardware_id) + casioemu::GetCursorOffset(m_emu->hardware_id))) {
+		if ((size_t)(data + off) == casioemu::GetInputAreaOffset(m_emu->hardware_id) + *((unsigned char*)n_ram_buffer - casioemu::GetRamBaseAddr(m_emu->hardware_id) + casioemu::GetCursorOffset(m_emu->hardware_id))) {
 			return true;
 		}
 		return false;

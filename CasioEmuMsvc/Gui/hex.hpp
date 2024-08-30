@@ -115,7 +115,11 @@ struct MemoryEditor {
 		// Settings
 		Open = true;
 		ReadOnly = false;
+#ifdef __ANDROID__
 		Cols = 8;
+#else
+		Cols = 16;
+#endif
 		OptShowOptions = true;
 		OptShowDataPreview = false;
 		OptShowHexII = false;
@@ -420,7 +424,7 @@ struct MemoryEditor {
 		size_t length{};
 		ImColor color{};
 		const char* desc{};
-		bool operator<(const MarkedSpan& b)const  {
+		bool operator<(const MarkedSpan& b) const {
 			return start < b.start;
 		}
 	};

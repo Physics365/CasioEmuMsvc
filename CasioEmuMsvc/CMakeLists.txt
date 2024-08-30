@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(#${CMAKE_SOURCE_DIR}/SDL_image/include
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/Ext
+        ${CMAKE_SOURCE_DIR}/src/Dcl
         ${CMAKE_SOURCE_DIR}/src/Chipset
         ${CMAKE_SOURCE_DIR}/src/Containers
         ${CMAKE_SOURCE_DIR}/src/Gui

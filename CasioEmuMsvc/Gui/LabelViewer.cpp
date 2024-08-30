@@ -18,7 +18,7 @@ void LabelViewer::RenderCore() {
 		}
 		ImGui::PopID();
 		ImGui::SameLine(60, 0);
-		ImGui::Text("%X", lb.start);
+		ImGui::Text("%X", (unsigned int)lb.start);
 		ImGui::SameLine(120, 0);
 		std::string desc = lb.desc;
 		ltrim(desc);

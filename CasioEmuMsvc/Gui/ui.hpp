@@ -9,6 +9,8 @@ void gui_loop();
 extern char* n_ram_buffer;
 extern casioemu::MMU* me_mmu;
 extern casioemu::Emulator* m_emu;
+extern SDL_Window* window;
+extern SDL_Renderer* renderer;
 extern std::vector<Label> g_labels;
 
 void SetDebugbreak(void);
