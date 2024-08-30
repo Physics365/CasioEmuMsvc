@@ -46,17 +46,41 @@ struct CallAnalysis : public UIWindow {
 	}
 	void RenderCore() override {
 		if (is_call_recoding) {
-			if (ImGui::Button("停止")) {
+			if (ImGui::Button(
+#if LANGUAGE == 2
+				"停止"
+#else
+				"Stop"
+#endif
+)) {
 				is_call_recoding = false;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("清空")) {
+			if (ImGui::Button(
+#if LANGUAGE == 2
+				"清空"
+#else
+				"Clear"
+#endif
+			)) {
 				funcs.clear();
 			}
 			ImGui::Separator();
 			if (ImGui::BeginTable("##records", 3, pretty_table)) {
-				ImGui::TableSetupColumn("函数", ImGuiTableColumnFlags_WidthFixed, 80);
-				ImGui::TableSetupColumn("调用计数", ImGuiTableColumnFlags_WidthFixed, 80);
+				ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+					"函数"
+#else
+					"Function"
+#endif
+					, ImGuiTableColumnFlags_WidthFixed, 80);
+				ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+					"调用计数"
+#else
+					"Call count"
+#endif
+					, ImGuiTableColumnFlags_WidthFixed, 80);
 				ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch, 1);
 				ImGui::TableHeadersRow();
 				for (auto& func : funcs) {
@@ -72,14 +96,32 @@ struct CallAnalysis : public UIWindow {
 		}
 		else {
 			if (!viewing_calls.empty()) {
-				if (ImGui::Button("关闭")) {
+				if (ImGui::Button(
+#if LANGUAGE == 2
+					"关闭"
+#else
+					"Close"
+#endif
+				)) {
 					viewing_calls.clear();
 					return;
 				}
 				if (ImGui::BeginTable("##records", 10, pretty_table)) {
 					ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 40);
-					ImGui::TableSetupColumn("函数", ImGuiTableColumnFlags_WidthFixed, 80);
-					ImGui::TableSetupColumn("调用者", ImGuiTableColumnFlags_WidthFixed, 80);
+					ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+						"函数"
+#else
+						"Function"
+#endif
+						, ImGuiTableColumnFlags_WidthFixed, 80);
+					ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+						"调用者"
+#else
+						"Caller"
+#endif
+						, ImGuiTableColumnFlags_WidthFixed, 80);
 					ImGui::TableSetupColumn("R0", ImGuiTableColumnFlags_WidthFixed, 20);
 					ImGui::TableSetupColumn("R1", ImGuiTableColumnFlags_WidthFixed, 20);
 					ImGui::TableSetupColumn("R2", ImGuiTableColumnFlags_WidthFixed, 20);
@@ -111,7 +153,13 @@ struct CallAnalysis : public UIWindow {
 						ImGui::Text("%04x", (func.xr0 >> 16) & 0xffff);
 						ImGui::TableNextColumn();
 						ImGui::PushID(i++);
-						if (ImGui::Button("展示堆栈追踪")) {
+						if (ImGui::Button(
+#if LANGUAGE == 2
+							"展示堆栈追踪"
+#else
+							"Stack trace"
+#endif
+						)) {
 							SDL_ShowSimpleMessageBox(0, "CasioEmuMsvc", func.stack.c_str(), 0);
 						}
 						ImGui::PopID();
@@ -120,21 +168,51 @@ struct CallAnalysis : public UIWindow {
 				}
 				return;
 			}
-			if (ImGui::Button("开始记录")) {
+			if (ImGui::Button(
+#if LANGUAGE == 2
+				"开始记录"
+#else
+				"Start Recording"
+#endif
+			)) {
 				is_call_recoding = true;
 				funcs.clear();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("清空")) {
+			if (ImGui::Button(
+#if LANGUAGE == 2
+				"清空"
+#else
+				"Clear"
+#endif
+			)) {
 				funcs.clear();
 			}
 			ImGui::Separator();
-			ImGui::Text("过滤器:");
-			ImGui::Checkbox("被调用的函数是:", &check_callee);
+			ImGui::Text(
+#if LANGUAGE == 2
+				"过滤器:"
+#else
+				"Filters:"
+#endif
+			);
+			ImGui::Checkbox(
+#if LANGUAGE == 2
+				"被调用的函数是:"
+#else
+				"Function called:"
+#endif
+				, &check_callee);
 			ImGui::SameLine();
 			if (ImGui::InputText("##callee", callee, 260))
 				callee_v = strtol(callee, 0, 16);
-			ImGui::Checkbox("调用者是:", &check_caller);
+			ImGui::Checkbox(
+#if LANGUAGE == 2
+				"调用者是:"
+#else
+				"Caller:"
+#endif
+				, &check_caller);
 			ImGui::SameLine();
 			if (ImGui::InputText("##caller", caller, 260))
 				caller_v = strtol(caller, 0, 16);
@@ -152,8 +230,20 @@ struct CallAnalysis : public UIWindow {
 			// ImGui::Checkbox("ER2", &er2);
 			// ImGui::Separator();
 			if (ImGui::BeginTable("##records", 3, pretty_table)) {
-				ImGui::TableSetupColumn("函数", ImGuiTableColumnFlags_WidthFixed, 80);
-				ImGui::TableSetupColumn("调用计数", ImGuiTableColumnFlags_WidthFixed, 80);
+				ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+					"函数"
+#else
+					"Function"
+#endif
+					, ImGuiTableColumnFlags_WidthFixed, 80);
+				ImGui::TableSetupColumn(
+#if LANGUAGE == 2
+					"调用计数"
+#else
+					"Call count"
+#endif
+					, ImGuiTableColumnFlags_WidthFixed, 80);
 				ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch, 1);
 				ImGui::TableHeadersRow();
 				int i = 0;
@@ -165,7 +255,13 @@ struct CallAnalysis : public UIWindow {
 					ImGui::Text("%d", (int)func.second.size());
 					ImGui::TableNextColumn();
 					ImGui::PushID(i++);
-					if (ImGui::Button("展示所有调用记录")) {
+					if (ImGui::Button(
+#if LANGUAGE == 2
+						"展示所有调用记录"
+#else
+							"Show all records"
+#endif
+					)) {
 						viewing_calls = func.second;
 					}
 					ImGui::PopID();
