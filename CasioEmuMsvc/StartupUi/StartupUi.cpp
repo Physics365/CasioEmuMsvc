@@ -242,6 +242,13 @@ public:
 				mi.ink_color.g = color[1] * 255;
 				mi.ink_color.b = color[2] * 255;
 			}
+			if (ImGui::Button("Save")) {
+				std::ofstream ifs(pth / "config.bin", std::ios::binary);
+				if (!ifs)
+					PANIC("Cannot open.");
+				Binary::Write(ifs, mi);
+				this->open = false;
+			}
 			ImGui::Separator();
 			if (btninfo) {
 				if (ImGui::InputText("Keyname", buffer, 260)) {
