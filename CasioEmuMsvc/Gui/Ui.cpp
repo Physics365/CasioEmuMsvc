@@ -94,7 +94,7 @@ int test_gui(bool* guiCreated, SDL_Window* wnd, SDL_Renderer* rnd) {
 	window = wnd;
 	renderer = rnd;
 #else
-	window = SDL_CreateWindow("CasioEmuMsvc Debugger", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, 0);
+	window = SDL_CreateWindow("CasioEmuMsvc Debugger", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_RESIZABLE);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 #endif // __ANDROID
 	if (renderer == nullptr) {
