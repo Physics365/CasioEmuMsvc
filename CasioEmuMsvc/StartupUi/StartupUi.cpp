@@ -479,7 +479,7 @@ namespace casioemu {
                     Binary::Read(ifs, rp);
                     if (rp.IsEncrypted) {
                         show_password_input = true;
-                        current_file = f;
+                        current_file = f.string();
                         current_rp = rp;
                         password_error = false;  // 重置错误状态
                         memset(password, 0, sizeof(password));  // 清空密码输入框
