@@ -29,7 +29,7 @@
 #pragma comment(lib, "winmm.lib")
 #endif
 
-#ifdef  __ANDROID__
+#ifdef __ANDROID__
 #include <unistd.h>
 #endif
 
@@ -108,6 +108,8 @@ int main(int argc, char* argv[]) {
 		bg_txt = SDL_CreateTextureFromSurface(renderer, background);
 	}
 
+	SDL_ShowWindow(emulator.window);
+
 	while (emulator.Running()) {
 		SDL_Event event{};
 		busy = false;
@@ -143,7 +145,7 @@ int main(int argc, char* argv[]) {
 				SDL_RenderCopy(renderer, bg_txt, NULL, &dst_rect);
 			}
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 20);
-			SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+			SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 			SDL_RenderFillRect(renderer, 0);
 #ifdef SINGLE_WINDOW
 			emulator.Frame();
@@ -183,16 +185,17 @@ int main(int argc, char* argv[]) {
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEWHEEL:
 		default:
-            ImGui_ImplSDL2_ProcessEvent(&event);
-			if (
 #ifdef SINGLE_WINDOW
-				ImGui::GetIO().WantCaptureMouse
-#else
-				(SDL_GetKeyboardFocus() != emulator.window) && guiCreated
-#endif
-			) {
+			ImGui_ImplSDL2_ProcessEvent(&event);
+			if (ImGui::GetIO().WantCaptureMouse) {
 				break;
 			}
+#else
+			if ((SDL_GetKeyboardFocus() != emulator.window) && guiCreated) {
+				ImGui_ImplSDL2_ProcessEvent(&event);
+				break;
+			}
+#endif
 			emulator.UIEvent(event);
 			break;
 		}
