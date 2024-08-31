@@ -70,12 +70,14 @@ RomInfo rom_info(std::vector<byte>& rom, const std::vector<byte>& flash, bool ch
 			if (ri.ver[0] != 'E') {
 				auto ver = (byte*)FindSignature(dat, 0x5e000, "?? 00 e9 90 ca ff ?? 00 e9 90 cb ff ?? 00 e9 90 cc ff ?? 00 e9 90 cd ff ?? 00 e9 90 ce ff ?? 00 e9 90 cf ff");
 				auto ver2 = (byte*)FindSignature(dat, 0x5e000, "56 00 e9 90 d1 ff 2e 00 e9 90 d2 ff");
-				auto ofst = ver2[14] | (ver2[15] << 8);
-				for (size_t i = 0; i < 6; i++) {
-					ri.ver[i] = ver[i * 6];
+				if (ver && ver2) {
+					auto ofst = ver2[14] | (ver2[15] << 8);
+					for (size_t i = 0; i < 6; i++) {
+						ri.ver[i] = ver[i * 6];
+					}
+					ri.ver[6] = dat[ofst];
+					ri.ver[7] = dat[ofst + 1];
 				}
-				ri.ver[6] = dat[ofst];
-				ri.ver[7] = dat[ofst + 1];
 			}
 			ri.desired_sum = le_read(dat[0x5fff6]);
 			sum_type = CWII;
