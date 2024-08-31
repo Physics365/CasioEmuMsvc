@@ -75,10 +75,12 @@ int main(int argc, char* argv[]) {
 	if (IMG_Init(imgFlags) != imgFlags)
 		PANIC("IMG_Init failed: %s\n", IMG_GetError());
 
-	auto s = sui_loop();
-	argv_map["model"] = s;
-	if (s.empty())
-		return -1;
+	if (argv_map["model"].empty()) {
+		auto s = sui_loop();
+		argv_map["model"] = std::move(s);
+		if (argv_map["model"].empty())
+			return -1;
+	}
 
 	Emulator emulator(argv_map);
 	m_emu = &emulator;

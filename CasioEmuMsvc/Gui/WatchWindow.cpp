@@ -107,8 +107,12 @@ void WatchWindow::UpdateRX() {
 	for (int i = 0; i < 16; i++) {
 		m_emu->chipset.cpu.reg_r[i] = (uint8_t)strtol((char*)reg_rx[i], nullptr, 16);
 	}
-	m_emu->chipset.cpu.reg_pc = (uint16_t)strtol((char*)reg_pc, nullptr, 16);
-	m_emu->chipset.cpu.reg_lr = (uint16_t)strtol((char*)reg_lr, nullptr, 16);
+	auto pc = strtol((char*)reg_pc, nullptr, 16);
+	m_emu->chipset.cpu.reg_pc = (uint16_t)pc;
+	m_emu->chipset.cpu.reg_csr = pc >> 16;
+	 pc = strtol((char*)reg_lr, nullptr, 16);
+	m_emu->chipset.cpu.reg_lr = (uint16_t)pc;
+	m_emu->chipset.cpu.reg_lcsr = pc >> 16;
 	m_emu->chipset.cpu.reg_ea = (uint16_t)strtol((char*)reg_ea, nullptr, 16);
 	m_emu->chipset.cpu.reg_sp = (uint16_t)strtol((char*)reg_sp, nullptr, 16);
 	m_emu->chipset.cpu.reg_psw = (uint16_t)strtol((char*)reg_psw, nullptr, 16);
@@ -150,22 +154,22 @@ void WatchWindow::RenderCore() {
 #endif
 		,
 		rm == RM_RUN ? "Run" : (rm == RM_STOP ? "Stop" : (rm == RM_HALT ? "Halt" : "?")));
-	//ImGui::Text("Psw");
-	//for (size_t i = 0; i < 8; i++) {
+	// ImGui::Text("Psw");
+	// for (size_t i = 0; i < 8; i++) {
 	//	ImGui::SameLine(i * 25. + 50.);
 	//	ImGui::Text("%zu", i);
-	//}
-	//ImGui::Dummy(ImVec2(0, 0));
+	// }
+	// ImGui::Dummy(ImVec2(0, 0));
 
-	//bool changed = false;
-	//for (size_t i = 0; i < 8; i++) {
+	// bool changed = false;
+	// for (size_t i = 0; i < 8; i++) {
 	//	ImGui::SameLine(i * 25. + 50.);
 	//	if (ImGui::Checkbox(("##" + std::to_string(i)).c_str(), &pdx[i])) {
 	//		changed = true;
 	//	}
-	//}
+	// }
 
-	//if (changed) {
+	// if (changed) {
 	//	pd = 0;
 	//	for (int i = 0; i < 8; i++) {
 	//		if (pdx[i]) {
@@ -173,7 +177,7 @@ void WatchWindow::RenderCore() {
 	//		}
 	//	}
 	//	m_emu->modeldef.pd_value = pd;
-	//}
+	// }
 	PrepareRX();
 	if (!m_emu->GetPaused()) {
 		ShowRX();
@@ -202,17 +206,17 @@ void WatchWindow::RenderCore() {
 		ImGui::TableSetupColumn("LR", ImGuiTableColumnFlags_WidthStretch, 1);
 		ImGui::TableHeadersRow();
 		auto stack = chipset.cpu.stack.get();
-        class reverse_view{
-        public:
-            reverse_view(decltype(*stack)& vector1) :stk(vector1){}
-            decltype(*stack)& stk;
-            auto begin(){
-                return stk.rbegin();
-            }
-            auto end(){
-                return stk.rend();
-            }
-        };
+		class reverse_view {
+		public:
+			reverse_view(decltype(*stack)& vector1) : stk(vector1) {}
+			decltype(*stack)& stk;
+			auto begin() {
+				return stk.rbegin();
+			}
+			auto end() {
+				return stk.rend();
+			}
+		};
 
 		for (auto& frame : reverse_view{*stack}) {
 			ImGui::TableNextRow();

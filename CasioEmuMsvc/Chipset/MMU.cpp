@@ -77,14 +77,14 @@ namespace casioemu {
 			if (segment_index == 8)
 				return le_read(rom[offset & 0x7ffff]);
 			segment_index &= 7;
-			// if (segment_index == 7) {
-			//	if (segment_offset >= 0x2000) {
-			//		return 0xffff;
-			//	}
-			//	else {
-			//		return rom[0x5E000 + segment_offset];
-			//	}
-			// }
+			if (segment_index == 7) {
+				if (segment_offset >= 0x2000) {
+					return 0xffff;
+				}
+				else {
+					return le_read(rom[0x5E000 + segment_offset]);
+				}
+			}
 			if (segment_index > 6)
 				return 0xFFFF;
 			if (segment_index == 5) {
